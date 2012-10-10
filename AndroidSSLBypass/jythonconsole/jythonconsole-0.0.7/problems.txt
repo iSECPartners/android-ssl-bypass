@@ -1,0 +1,15 @@
+==========================
+Known problems
+==========================
+
+You must use the keyboard not the mouse to select methods.  (Due to focus problems.)
+
+Builtin types don't work like they do in PyCrust.  This is because they have a null __doc__ string in Jython.
+
+Sometimes introspect.getAllAttributeNames goes into an infine recursive loop
+
+python.security.respectJavaAccessibility must be set to true in Jython's registry (this is the default setting)
+
+--
+
+Please submit any new issues http://code.google.com/p/jythonconsole/issues/list 

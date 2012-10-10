@@ -1,0 +1,2 @@
+javax.net.ssl.HttpsURLConnection
+org.apache.harmony.xnet.provider.jsse.OpenSSLSocketFactoryImpl
