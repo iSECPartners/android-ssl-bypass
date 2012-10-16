@@ -8,4 +8,6 @@ public interface PluginService {
 	Iterator<JDIPlugin> getPlugins();
 
 	void initPlugins(VirtualMachineEventManager vmem);
+
+	void initPlugin(VirtualMachineEventManager vmem, String pluginName);
 }

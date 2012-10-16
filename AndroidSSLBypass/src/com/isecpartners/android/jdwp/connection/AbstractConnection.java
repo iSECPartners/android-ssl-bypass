@@ -123,7 +123,7 @@ public abstract class AbstractConnection
 			} catch (VMDisconnectedException vmde) {
 				try {
 					this.sendMessage(new Message(Message.Type.DISCONNECTED,
-							this));
+							"vm disconnection exception"));
 				} catch (InterruptedException e) {
 					AbstractConnection.LOGGER
 							.error("thread interrupted while sending message: "

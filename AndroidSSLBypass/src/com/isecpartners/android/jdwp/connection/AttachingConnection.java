@@ -24,7 +24,7 @@ public class AttachingConnection extends AbstractConnection {
 		AttachingConnection.LOGGER.info("creating AttachingConnection");
 		AttachingConnection.LOGGER.info(args);
 	}
-
+	
 	@Override
 	public void connect() throws IllegalConnectorArgumentsException,
 			IOException, VMDisconnectedException, VMStartException {
@@ -35,7 +35,7 @@ public class AttachingConnection extends AbstractConnection {
 		AttachingConnection.LOGGER.info("connected!");
 
 		try {
-			this.sendMessage(new Message(Message.Type.CONNECTED, vm));
+			this.sendMessage(new Message(Message.Type.CONNECTED, vm.description()));
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

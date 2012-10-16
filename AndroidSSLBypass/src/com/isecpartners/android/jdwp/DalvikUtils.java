@@ -15,6 +15,7 @@ import com.sun.jdi.ClassNotLoadedException;
 import com.sun.jdi.ClassObjectReference;
 import com.sun.jdi.ClassType;
 import com.sun.jdi.DoubleValue;
+import com.sun.jdi.Field;
 import com.sun.jdi.FloatValue;
 import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.IntegerValue;
@@ -41,50 +42,45 @@ import com.sun.jdi.request.MethodEntryRequest;
 import com.sun.jdi.request.MethodExitRequest;
 import com.sun.jdi.request.StepRequest;
 
-public class VMUtils {
-	private static final String DEX_CLASS_LOADER_CLASS = "dalvik.system.DexClassLoader";
-
-	private static final String LOAD_CLASS_METHOD_NAME = "loadClass";
-
+public class DalvikUtils extends Thread{
 	private final static org.apache.log4j.Logger LOGGER = Logger
-			.getLogger(VMUtils.class.getName());
-
-	private static final String NEW_INSTANCE = "newInstance";
-
+			.getLogger(DalvikUtils.class.getName());
+	private static final String NEW_INSTANCE_METHOD_NAME = "newInstance";
+	private static final String DEX_CLASS_LOADER_CLASS = "dalvik.system.DexClassLoader";
+	private static final String LOAD_CLASS_METHOD_NAME = "loadClass";
 	public static ArrayList<Value> NOARGS = new ArrayList<Value>();
 	private ThreadReference currentThread = null;
 	private EventRequestManager eventRequestManager = null;
 	private String name = null;
 	private VirtualMachine vm = null;
 
-	public VMUtils(VirtualMachine vm, int threadIndex) {
+	public DalvikUtils(VirtualMachine vm, int threadIndex) {
 		this.vm = vm;
 		this.name = this.vm.name();
 
 		// TODO dont know if this should be defaulted or exception thrown
 		if ((threadIndex < 0) || (threadIndex >= this.vm.allThreads().size())) {
 			threadIndex = 0;
-			VMUtils.LOGGER
+			DalvikUtils.LOGGER
 					.warn("out of bounds condition with given argument value : "
 							+ threadIndex + " using default value of 0");
 		}
 		this.currentThread = this.vm.allThreads().get(threadIndex);
+	}
+	
+	public DalvikUtils(VirtualMachine vm, ThreadReference thread) {
+		this.vm = vm;
+		this.name = this.vm.name();
+		this.currentThread = thread;
+	}
 
-		this.eventRequestManager = this.vm.eventRequestManager();
+	public ThreadReference getCurrentThread() {
+		return this.currentThread;
 	}
 
 	public BooleanValue createBool(boolean toCreate) {
 		BooleanValue boolVal = this.vm.mirrorOf(toCreate);
 		return boolVal;
-	}
-
-	public BreakpointRequest createBreakpointRequest(Location loc) {
-		BreakpointRequest bpr = this.eventRequestManager
-				.createBreakpointRequest(loc);
-		// this could be SUSPEND_EVENT_THREAD
-		bpr.setSuspendPolicy(EventRequest.SUSPEND_ALL);
-		bpr.enable();
-		return bpr;
 	}
 
 	public ByteValue createByte(byte toCreate) {
@@ -95,15 +91,6 @@ public class VMUtils {
 	public CharValue createChar(char toCreate) {
 		CharValue charVal = this.vm.mirrorOf(toCreate);
 		return charVal;
-	}
-
-	public ClassPrepareRequest createClassPrepareRequest(String classFilter) {
-		ClassPrepareRequest cpr = this.eventRequestManager
-				.createClassPrepareRequest();
-		cpr.setSuspendPolicy(EventRequest.SUSPEND_ALL);
-		cpr.addClassFilter(classFilter);
-		cpr.enable();
-		return cpr;
 	}
 
 	public DoubleValue createDouble(double toCreate) {
@@ -124,6 +111,28 @@ public class VMUtils {
 	public LongValue createLong(long toCreate) {
 		LongValue longVal = this.vm.mirrorOf(toCreate);
 		return longVal;
+	}
+
+	public ClassPrepareRequest createClassPrepareRequest(String classFilter) {
+		ClassPrepareRequest cpr = this.eventRequestManager
+				.createClassPrepareRequest();
+		cpr.setSuspendPolicy(EventRequest.SUSPEND_ALL);
+		cpr.addClassFilter(classFilter);
+		cpr.enable();
+		return cpr;
+	}
+
+	public BreakpointRequest createBreakpointRequest(Location loc) {
+		BreakpointRequest bpr = this.eventRequestManager
+				.createBreakpointRequest(loc);
+		// this could be SUSPEND_EVENT_THREAD
+		bpr.setSuspendPolicy(EventRequest.SUSPEND_ALL);
+		bpr.enable();
+		return bpr;
+	}
+
+	public List<BreakpointRequest> getBreakpoints() {
+		return this.eventRequestManager.breakpointRequests();
 	}
 
 	public MethodEntryRequest createMethodEntryRequest(String classFilter) {
@@ -204,6 +213,7 @@ public class VMUtils {
 	}
 
 	private List<ReferenceType> findClasses(String name) {
+		this.vm.allClasses();
 		return this.vm.classesByName(name);
 	}
 
@@ -212,7 +222,7 @@ public class VMUtils {
 		ReferenceType cl = null;
 		if (!cls.isEmpty()) {
 			if (cls.size() > 1) {
-				VMUtils.LOGGER
+				DalvikUtils.LOGGER
 						.warn("found more than one class; solution not implemented, taking the first");
 			}
 			cl = cls.get(0);
@@ -240,41 +250,63 @@ public class VMUtils {
 		return this.vm.allThreads();
 	}
 
-	public Value getBootClassLoader(ThreadReference tr)
+	public EventRequestManager getEventRequestManager() {
+		this.eventRequestManager = this.vm.eventRequestManager();
+		return this.eventRequestManager;
+	}
+
+	public ClassLoaderReference getBootClassLoader(ThreadReference tr)
 			throws InvalidTypeException, ClassNotLoadedException,
 			IncompatibleThreadStateException, InvocationException {
 		Value scl = this.getSystemClassLoader(tr);
 		ObjectReference sclObj = (ObjectReference) scl;
 		ReferenceType sclRef = sclObj.referenceType();
 		Method getParent = sclRef.methodsByName("getParent").get(0);
-		return sclObj.invokeMethod(tr, getParent, new ArrayList<Value>(), 0);
+		return (ClassLoaderReference) sclObj.invokeMethod(tr, getParent,
+				new ArrayList<Value>(), 0);
 	}
 
-	public List<BreakpointRequest> getBreakpoints() {
-		return this.eventRequestManager.breakpointRequests();
+	public ClassType loadDexClassLoader(){
+		ClassType dexLoader = this
+				.findClassType(DalvikUtils.DEX_CLASS_LOADER_CLASS);
+		if (dexLoader != null) {
+			DalvikUtils.LOGGER.info("DexClassLoader already loaded!");
+		} else {
+			DalvikUtils.LOGGER
+					.info("DexClassLoader not loaded, loading via reflection");
+			ClassObjectReference dexLoaderClassObj;
+			try {
+				dexLoaderClassObj = (ClassObjectReference) this
+						.loadClassReflection(this.currentThread, DalvikUtils.DEX_CLASS_LOADER_CLASS);
+				// Note the use of reflectedType() vs referenceType()
+				dexLoader = (ClassType) dexLoaderClassObj.reflectedType();
+				dexLoader = this
+						.findClassType(DalvikUtils.DEX_CLASS_LOADER_CLASS);
+				LOGGER.info("got dexLoader: " + dexLoader.name());
+			} catch (InvalidTypeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotLoadedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IncompatibleThreadStateException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvocationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return dexLoader;
 	}
-
-	public ThreadReference getCurrentThread() {
-		return this.currentThread;
-	}
-
+	
 	public Value getDexClassLoader(ThreadReference tr, String dexPath,
 			String optPath, String libPath, Value parentLoader)
 			throws InvalidTypeException, ClassNotLoadedException,
-			IncompatibleThreadStateException, InvocationException {
+			IncompatibleThreadStateException, InvocationException,
+			NoLoadClassMethodException {
 
-		ClassType dexLoader = this
-				.findClassType(VMUtils.DEX_CLASS_LOADER_CLASS);
-		if (dexLoader != null) {
-			VMUtils.LOGGER.info("DexClassLoader already loaded!");
-		} else {
-			VMUtils.LOGGER
-					.info("DexClassLoader not loaded, loading via reflection");
-			ClassObjectReference dexLoaderClassObj = (ClassObjectReference) this
-					.loadClassReflection(tr, VMUtils.DEX_CLASS_LOADER_CLASS);
-			// Note the use of reflectedType() vs referenceType()
-			dexLoader = (ClassType) dexLoaderClassObj.reflectedType();
-		}
+		ClassType dexCLType = this.loadDexClassLoader();
 
 		StringReference pathRef = this.createString(dexPath);
 		StringReference optRef = this.createString(optPath);
@@ -286,16 +318,11 @@ public class VMUtils {
 		vals.add(libRef);
 		vals.add(parentLoader);
 
-		Method init = dexLoader.allMethods().get(0);
-		Value dexLoaderObject = dexLoader.newInstance(tr, init, vals, 0);
-		VMUtils.LOGGER.info("got DexClassLoader Object: "
+		Method init = dexCLType.methodsByName("<init>").get(0);
+		Value dexLoaderObject = dexCLType.newInstance(tr, init, vals, 0);
+		DalvikUtils.LOGGER.info("got DexClassLoader Object: "
 				+ dexLoaderObject.type().name());
 		return dexLoaderObject;
-	}
-
-	public EventRequestManager getEventRequestManager() {
-		this.eventRequestManager = this.vm.eventRequestManager();
-		return this.eventRequestManager;
 	}
 
 	public ObjectReference getFrameObject(ThreadReference tr, int idx)
@@ -353,14 +380,37 @@ public class VMUtils {
 		return ret;
 	}
 
-	public String getName() {
-		return this.name;
+	/*
+	 * THis function appears to take an exorbitant amount of time why why why
+	 */
+	public boolean setLocalVariableValue(int i, String name, Value sf)
+			throws IncompatibleThreadStateException, InvalidTypeException,
+			ClassNotLoadedException, AbsentInformationException {
+		StackFrame frame = this.currentThread.frames().get(i);
+		LocalVariable var = frame.visibleVariableByName(name);
+		LOGGER.info("got var: " + var.typeName());
+		try {
+			frame.setValue(var, sf);
+			LOGGER.info("success setting new variable value");
+			return true;
+		} catch (java.lang.ClassCastException e) {
+			/*
+			 * KNOWN ISSUE: when checking type compatibility the debugger
+			 * requests the ClassLoader of the type of the variable. When an
+			 * object is loaded via reflection (using the current method) this
+			 * will return an ObjectReference. The debugger is expecting a
+			 * ClassLoaderReference and apparently the ObjectReference cannot be
+			 * cast to a ClassLoaderReference.
+			 */
+			LOGGER.info("ClassCastException due to type assignments with classes loaded via reflection, work around is to load class again");
+		}
+		return false;
 	}
 
 	public Value getSystemClassLoader(ThreadReference tr)
 			throws InvalidTypeException, ClassNotLoadedException,
 			IncompatibleThreadStateException, InvocationException {
-		VMUtils.LOGGER
+		DalvikUtils.LOGGER
 				.info("attempting to get the system class loader (Class.getSystemClassLoader)");
 		Value toreturn = null;
 		ClassType cl = this.findClassType("java.lang.ClassLoader");
@@ -389,100 +439,153 @@ public class VMUtils {
 		return this.loadClass(tr, className, bcl);
 	}
 
-	// TODO dont like the duplicated code here
-	public Value loadClass(ThreadReference tr, String className,
-			Value classLoaderObject) throws InvalidTypeException,
-			ClassNotLoadedException, IncompatibleThreadStateException,
-			InvocationException, NoLoadClassMethodException {
+	/*
+	 * Another one that takes a really really long time on first run
+	 */
+	public Value loadClassReflection(ThreadReference tr, String className)
+			throws InvalidTypeException, ClassNotLoadedException,
+			IncompatibleThreadStateException, InvocationException {
+		DalvikUtils.LOGGER
+				.info("attempting to load class via reflection (Class.forName): "
+						+ className);
+		StringReference clsName = this.createString(className);
+		ArrayList<Value> args = new ArrayList<Value>();
+		args.add(clsName);
+		ClassWrapper clWrap = this.getClassWrapper("java.lang.Class");
+		Value reflectedType = clWrap.invokeMethodOnType(
+				clWrap.getReferenceType(), "forName", args);
+		LOGGER.info(reflectedType.getClass().getName());
+		return reflectedType;
+
+	}
+
+	public Value loadClass(ThreadReference tr, String className, Value loader)
+			throws InvalidTypeException, ClassNotLoadedException,
+			IncompatibleThreadStateException, InvocationException,
+			NoLoadClassMethodException {
 		ReferenceType refType = null;
 		StringReference clsName = this.createString(className);
 		ArrayList<Value> args = new ArrayList<Value>();
 		args.add(clsName);
-
-		if (classLoaderObject instanceof ClassLoaderReference) {
-			ClassLoaderReference clRef = (ClassLoaderReference) classLoaderObject;
-			refType = clRef.referenceType();
+		LOGGER.info(loader.type().name());
+		try {
+			ObjectReference objRef = (ObjectReference) loader;
 			ArrayList<String> argTypes = new ArrayList<String>();
 			argTypes.add("java.lang.String");
 			Method loadClass = this.findMethodInClass(refType,
-					VMUtils.LOAD_CLASS_METHOD_NAME, argTypes);
-			if (loadClass == null) {
-				throw new NoLoadClassMethodException();
-			}
-			return clRef.invokeMethod(tr, loadClass, args, 0);
-
-		} else if (classLoaderObject instanceof ObjectReference) {
-			ObjectReference objRef = (ObjectReference) classLoaderObject;
-			refType = objRef.referenceType();
-			ArrayList<String> argTypes = new ArrayList<String>();
-			argTypes.add("java.lang.String");
-			Method loadClass = this.findMethodInClass(refType,
-					VMUtils.LOAD_CLASS_METHOD_NAME, argTypes);
+					DalvikUtils.LOAD_CLASS_METHOD_NAME, argTypes);
 			if (loadClass == null) {
 				throw new NoLoadClassMethodException();
 			}
 			return objRef.invokeMethod(tr, loadClass, args, 0);
+		} catch (Exception e) {
+			LOGGER.error(e);
 		}
 		return null;
 	}
 
-	public Value loadClassReflection(ThreadReference tr, String className)
-			throws InvalidTypeException, ClassNotLoadedException,
-			IncompatibleThreadStateException, InvocationException {
-		VMUtils.LOGGER
-				.info("attempting to load class via reflection (Class.forName): "
-						+ className);
-		ClassType clazz = this.findClassType("java.lang.Class");
-		List<String> argsTypes = new ArrayList<String>();
-		argsTypes.add("java.lang.String");
-		Method m = this.findMethodInClass(clazz, "forName", argsTypes);
-		StringReference clsName = this.createString(className);
-		ArrayList<Value> args = new ArrayList<Value>();
-		args.add(clsName);
-		return clazz.classObject().invokeMethod(tr, m, args, 0);
+	public Value loadClass(ThreadReference tr, String className,
+			ClassWrapper loader) throws InvalidTypeException,
+			ClassNotLoadedException, IncompatibleThreadStateException,
+			InvocationException, NoLoadClassMethodException {
+		ReferenceType refType = null;
+		try {
+			ObjectReference newInst = loader.newInstance();
+			StringReference clsName = this.createString(className);
+			ArrayList<Value> args = new ArrayList<Value>();
+			args.add(clsName);
+			loader.invokeMethodOnType(newInst.referenceType(), "loadClass",
+					args);
+		} catch (Exception e) {
+			LOGGER.error(e);
+		}
+		return null;
 	}
 
-	// TODO many weird bugs in this!!
-	public ObjectReference newInstanceOfDexClass(ThreadReference tr,
-			String dexPath, String optPath, String libPath, String className,
-			Value parentLoader) throws InvalidTypeException,
-			ClassNotLoadedException, IncompatibleThreadStateException,
-			InvocationException, DexClassLoaderNotFoundException,
+	public ClassWrapper loadClass(String className, ClassWrapper loader)
+			throws InvalidTypeException, ClassNotLoadedException,
+			IncompatibleThreadStateException, InvocationException,
 			NoLoadClassMethodException {
-		VMUtils.LOGGER
-				.info("attempting to load class from external apk using DexClassLoader: "
-						+ className);
-
-		ObjectReference dexLoader = (ObjectReference) this.getDexClassLoader(
-				tr, dexPath, optPath, libPath, parentLoader);
-		VMUtils.LOGGER.info("got DexClassLoader instance for path: " + dexPath
-				+ " with parentLoader: " + parentLoader.type().name());
-		Value cls = this.loadClass(tr, className, dexLoader);
-		ClassObjectReference loadedClass = (ClassObjectReference) cls;
-
-		// Note the difference between reflectedType and referenceType
-		VMUtils.LOGGER.info("successfully loaded class: "
-				+ loadedClass.reflectedType().name());
-
-		// Getting a reference to the underlying Class Object so we can use
-		// newInstance
-		ClassType loadedClassType = (ClassType) loadedClass.referenceType();
-		Method newInst = loadedClassType.methodsByName(VMUtils.NEW_INSTANCE)
-				.get(0);
-		// TODO on first run Cannot invoke instance method on a class type
-		try {
-			return (ObjectReference) loadedClassType.invokeMethod(tr, newInst,
-					VMUtils.NOARGS, 0);
-		} catch (java.lang.IllegalArgumentException e) {
-			LOGGER.warn("cannot invoke instance method on a class type, trying workaround");
-			return (ObjectReference) loadedClass.invokeMethod(tr, newInst,
-					VMUtils.NOARGS, 0);
+		Value cl = this.loadClass(this.currentThread, className, loader);
+		if (cl == null) {
+			LOGGER.error("could not load class: " + className);
+			return null;
 		}
+		ReferenceType t = (ReferenceType) cl.type();
+		return new ClassWrapper(t.classObject(), this.currentThread);
+	}
+
+	public ClassWrapper loadExternalClassFromAPK(String dexPath, String dexOpt,
+			String libPath, String className, String mainActivityClass)
+			throws InvalidTypeException, ClassNotLoadedException,
+			IncompatibleThreadStateException, InvocationException,
+			DexClassLoaderNotFoundException, NoLoadClassMethodException {
+
+		// first check if class is already loaded
+		ClassType clsType = this.findClassType(className);
+		if (clsType != null) {
+			LOGGER.info("class already loaded");
+			return new ClassWrapper(clsType.classObject(), this.currentThread);
+
+		} else {
+			DalvikUtils.LOGGER
+					.info("class not loaded, attempting to load class from external APK using DexClassLoader: "
+							+ className);
+
+			ClassLoaderReference parentLoader = this
+					.getBootClassLoader(this.currentThread);
+
+			ObjectReference dexLoader = (ObjectReference) this
+					.getDexClassLoader(this.currentThread, dexPath, dexOpt,
+							libPath, parentLoader);
+			if (dexLoader != null) {
+				DalvikUtils.LOGGER.info("got DexClassLoader instance: "
+						+ dexLoader.type().name() + " for path: " + dexPath
+						+ " with parentLoader: " + parentLoader.type().name());
+
+				StringReference clsName = this.createString(className);
+				ArrayList<Value> args = new ArrayList<Value>();
+				args.add(clsName);
+				Value result = dexLoader.invokeMethod(this.currentThread,
+						dexLoader.referenceType().methodsByName("loadClass")
+								.get(0), args, 0);
+				// TODO fix this mess
+				if (result != null) {
+					if (result instanceof ClassObjectReference) {
+						LOGGER.info("result is ClassObjectReference");
+						ClassObjectReference resultObj = (ClassObjectReference) result;
+						LOGGER.info("loaded class: "
+								+ resultObj.reflectedType().name());
+						return new ClassWrapper(resultObj, this.currentThread);
+					} else if (result instanceof ObjectReference) {
+						LOGGER.info("result is ObjectReference");
+						return new ClassWrapper(((ObjectReference) result)
+								.referenceType().classObject(),
+								this.currentThread);
+					} else if (result instanceof ReferenceType) {
+						LOGGER.info("result is ReferenceType");
+						return new ClassWrapper(
+								((ReferenceType) result).classObject(),
+								this.currentThread);
+					} else if (result instanceof ClassType) {
+						LOGGER.info("result is ReferenceType");
+						return new ClassWrapper(
+								((ClassType) result).classObject(),
+								this.currentThread);
+					}
+
+				}
+			} else {
+				LOGGER.error("could not get DexClassLoader");
+				return null;
+			}
+		}
+		return null;
 	}
 
 	// TODO this is not sufficient only does method names not line locations
 	public Location resolveLocation(String location) {
-		VMUtils.LOGGER.warn("line locations not yet implemented!");
+		DalvikUtils.LOGGER.warn("line locations not yet implemented!");
 		location = location.trim();
 		Location loc = null;
 		int endIdx = location.lastIndexOf(".");
@@ -520,32 +623,6 @@ public class VMUtils {
 		this.currentThread = currentThread;
 	}
 
-	public boolean setLocalVariableValue(int i, String name, Value sf)
-			throws IncompatibleThreadStateException, InvalidTypeException,
-			ClassNotLoadedException, AbsentInformationException {
-		StackFrame frame = this.getCurrentThread().frames().get(i);
-		LocalVariable var = frame.visibleVariableByName(name);
-		try {
-			frame.setValue(var, sf);
-			return true;
-		} catch (java.lang.ClassCastException e) {
-			/*
-			 * KNOWN ISSUE: when checking type compatibility the debugger
-			 * requests the ClassLoader of the type of the variable. When an
-			 * object is loaded via reflection (using the current method) this
-			 * will return an ObjectReference. The debugger is expecting a
-			 * ClassLoaderReference and apparently the ObjectReference cannot be
-			 * cast to a ClassLoaderReference.
-			 */
-			LOGGER.error("ClassCastException likely due to the new variable value being loaded via reflection. See comments in VMUTils for more info.");
-			return false;
-		}
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public void setVm(VirtualMachine vm) {
 		this.vm = vm;
 	}
@@ -554,24 +631,24 @@ public class VMUtils {
 		this.vm.suspend();
 	}
 
-	public ObjectReference loadExternalClassFromAPK(String dexPath,
-			String dexOpt, String libPath, String className)
+	public ClassWrapper getClassWrapper(String clasName) {
+		ClassType clsType = this.findClassType(clasName);
+		return new ClassWrapper(clsType.classObject(), this.currentThread);
+	}
+
+	public ClassWrapper getLoadClassWrapperFromBootLoader(String className)
 			throws InvalidTypeException, ClassNotLoadedException,
 			IncompatibleThreadStateException, InvocationException,
-			DexClassLoaderNotFoundException, NoLoadClassMethodException {
-		ClassType clsType = this.findClassType(className);
-		if (clsType != null) {
-			ClassObjectReference clsObj = clsType.classObject();
-			Method newInstance = clsObj.referenceType()
-					.methodsByName("newInstance").get(0);
-			return (ObjectReference) clsObj.invokeMethod(
-					this.getCurrentThread(), newInstance, VMUtils.NOARGS, 0);
-		}
-
-		ThreadReference tr = this.getCurrentThread();
-		Value parentLoader = this.getBootClassLoader(tr);
-		ObjectReference externalClass = this.newInstanceOfDexClass(tr, dexPath,
-				dexOpt, libPath, className, parentLoader);
-		return externalClass;
+			NoLoadClassMethodException {
+		ClassWrapper loader = this.getClassWrapper(className);
+		return this.loadClass(className, loader);
 	}
+
+	public Value getFieldValue(String className, String fieldName) {
+		ClassWrapper classWrapper = this.getClassWrapper(className);
+		Field field = classWrapper.getField(fieldName);
+		Value fieldValue = classWrapper.getFieldValue(field);
+		return fieldValue;
+	}
+
 }

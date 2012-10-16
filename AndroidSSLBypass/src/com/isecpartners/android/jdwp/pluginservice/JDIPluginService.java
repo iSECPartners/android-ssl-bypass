@@ -29,9 +29,10 @@ public class JDIPluginService implements PluginService {
 	private ServiceLoader<JDIPlugin> serviceLoader;
 
 	private JDIPluginService(File dir) {
-		this.path = dir;
-		this.serviceLoader = ServiceLoader.load(JDIPlugin.class);
-
+		if (dir.exists()){
+			this.path = dir;
+			this.serviceLoader = ServiceLoader.load(JDIPlugin.class);
+		}
 	}
 
 	@Override
@@ -61,6 +62,34 @@ public class JDIPluginService implements PluginService {
 			} catch (IOException e) {
 				JDIPluginService.LOGGER
 						.error("IO Exception reading plugin dir: " + e);
+			}
+		}
+	}
+
+	@Override
+	public void initPlugin(VirtualMachineEventManager vmem, String pluginName) {
+		Iterator<JDIPlugin> iterator = this.getPlugins();
+		if (!iterator.hasNext()) {
+			JDIPluginService.LOGGER.info("no plugins were found!");
+		}
+		while (iterator.hasNext()) {
+			JDIPlugin plugin = iterator.next();
+			if(plugin.getName().equals(pluginName)){
+				JDIPluginService.LOGGER.info("initializing the plugin "
+						+ plugin.getName());
+				try {
+					plugin.init(vmem, this.path.getAbsolutePath());
+				} catch (LocationNotFoundException e) {
+					JDIPluginService.LOGGER
+							.error("could not find location referenced by plugin: "
+									+ e);
+				} catch (FileNotFoundException e) {
+					JDIPluginService.LOGGER.error("plugin directory not found: "
+							+ e);
+				} catch (IOException e) {
+					JDIPluginService.LOGGER
+							.error("IO Exception reading plugin dir: " + e);
+				}
 			}
 		}
 	}

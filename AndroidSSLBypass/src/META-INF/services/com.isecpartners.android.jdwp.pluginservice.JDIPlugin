@@ -1,1 +1,4 @@
 com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
+com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
+com.isecpartners.android.jdwp.plugin.TestJDIPlugin

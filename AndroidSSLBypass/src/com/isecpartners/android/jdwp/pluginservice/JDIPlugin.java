@@ -12,7 +12,7 @@ public interface JDIPlugin {
 
 	String getName();
 
-	void init(VirtualMachineEventManager vmem, String path)
+	void init(VirtualMachineEventManager vmem, String propertiesPath)
 			throws LocationNotFoundException, FileNotFoundException,
 			IOException;
 

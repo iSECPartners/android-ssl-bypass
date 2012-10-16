@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
+import com.isecpartners.android.jdwp.common.Message;
 import com.isecpartners.android.jdwp.common.QueueAgent;
 import com.isecpartners.android.jdwp.pluginservice.JDIPlugin;
 import com.sun.jdi.Location;
@@ -136,7 +137,13 @@ public class VirtualMachineEventManager extends QueueAgent {
 				if (it.hasNext()) {
 					Event event = it.nextEvent();
 					JDIPlugin handler = this.vmEvents.get(event.request());
-					handler.handleEvent(event);
+					if(event instanceof com.sun.jdi.event.VMDisconnectEvent || event instanceof com.sun.jdi.event.VMDeathEvent){
+						done = true;
+						this.sendMessage(new Message(Message.Type.DISCONNECTED,event));
+						break;
+					} else {
+						handler.handleEvent(event);
+					}
 				}
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -152,5 +159,9 @@ public class VirtualMachineEventManager extends QueueAgent {
 
 	public void setVmUtils(VMUtils vmUtils) {
 		this.vmUtils = vmUtils;
+	}
+
+	public DalvikUtils getDalvikUtils(int index) {
+		return new DalvikUtils(this.vm,index);
 	}
 }

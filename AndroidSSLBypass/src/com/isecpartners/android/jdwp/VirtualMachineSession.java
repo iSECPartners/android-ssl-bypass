@@ -12,8 +12,7 @@ import com.isecpartners.android.jdwp.connection.AbstractConnection;
 import com.isecpartners.android.jdwp.connection.DefaultConnectionFactory;
 import com.isecpartners.android.jdwp.connection.NoAttachingConnectorException;
 import com.isecpartners.android.jdwp.pluginservice.JDIPlugin;
-import com.isecpartners.android.jdwp.pluginservice.JDIPluginServiceFactory;
-import com.isecpartners.android.jdwp.pluginservice.PluginService;
+import com.sun.jdi.ClassType;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.ThreadReference;
 import com.sun.jdi.VMDisconnectedException;
@@ -34,8 +33,6 @@ public class VirtualMachineSession extends QueueAgent {
 
 	private String host = null;
 
-	private String pluginsPath = "plugins";
-
 	private String port = null;
 
 	private VirtualMachine vm = null;
@@ -44,18 +41,14 @@ public class VirtualMachineSession extends QueueAgent {
 
 	Iterator<JDIPlugin> vmHandlers = null;
 
-	private VMUtils vmUtils = null;
+	private DalvikUtils vmUtils = null;
 
-	public VirtualMachineSession(String host, String port, String pluginsPath)
+	public VirtualMachineSession(String host, String port, Iterator<JDIPlugin> vmHandlers)
 			throws NoAttachingConnectorException {
 		this.setName("vm session");
 		this.host = host;
 		this.port = port;
-
-		if ((this.host == null) || (this.host == "")) {
-			this.host = VirtualMachineSession.DEFAULT_HOST;
-		}
-		this.pluginsPath = pluginsPath;
+		this.vmHandlers = vmHandlers;
 	}
 
 	public void connect(String port) throws NoAttachingConnectorException,
@@ -67,7 +60,7 @@ public class VirtualMachineSession extends QueueAgent {
 		this.dvmConnection = this.defaultConnectionFactory.createSocket(
 				this.host, port);
 		// this.dvmConnection.addPropertyChangeListener(this);
-		this.addQueueAgentListener(this.dvmConnection);
+		this.setQueueAgentListener(this.dvmConnection);
 		this.dvmConnection.connect();
 	}
 
@@ -99,7 +92,7 @@ public class VirtualMachineSession extends QueueAgent {
 		return this.vmem;
 	}
 
-	public VMUtils getVMUtils() {
+	public DalvikUtils getVMUtils() {
 		return this.vmUtils;
 	}
 
@@ -109,30 +102,22 @@ public class VirtualMachineSession extends QueueAgent {
 		// this.vm = (VirtualMachine) newValue;
 		this.vm = this.dvmConnection.getVM();
 		VirtualMachineSession.LOGGER.info("got vm: " + this.vm);
-		this.vmUtils = new VMUtils(this.vm, 0);
-
+		this.vmUtils = new DalvikUtils(this.vm, 0);
+		//this.vmUtils.suspendAllThreads();
+		//TODO hoping this helps with time ...
 		this.vmem = new VirtualMachineEventManager(this.vm);
+		this.setQueueAgentListener(this.vmem);
 		this.vmem.start();
-
-		PluginService pluginService;
+		//this.vmUtils.resumeAllThreads();
 		try {
-			pluginService = JDIPluginServiceFactory
-					.createPluginService(this.pluginsPath);
-			pluginService.initPlugins(this.vmem);
-			this.vmHandlers = pluginService.getPlugins();
-
-		} catch (IOException e1) {
-			VirtualMachineSession.LOGGER
-					.error("could not load plugins due to IO exception: " + e1);
-		}
-
-		try {
-			this.sendMessage(new Message(Message.Type.CONNECTED, this));
+			this.sendMessage(new Message(Message.Type.CONNECTED, "successfully connected"));
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
+	
+	
 
 	@Override
 	public void run() {
@@ -163,10 +148,10 @@ public class VirtualMachineSession extends QueueAgent {
 
 				case DISCONNECTED:
 					VirtualMachineSession.LOGGER.info("got disconnected event");
-					this.sendMessage(new Message(Message.Type.STOP, this));
+					this.sendMessage(msg);
 					done = true;
 					break;
-
+					
 				case STOP:
 					done = true;
 					break;
@@ -203,11 +188,9 @@ public class VirtualMachineSession extends QueueAgent {
 			VirtualMachineSession.LOGGER.info("InterruptedException: "
 					+ e.getMessage() + " - exiting");
 		}
-		/*
-		 * try { this.sendMessage(new Message(Message.Type.DONE, this)); } catch
-		 * (InterruptedException e) { // TODO Auto-generated catch block
-		 * e.printStackTrace(); }
-		 */
 	}
 
+	public Iterator<JDIPlugin> getPlguins() {
+		return this.vmHandlers;
+	}
 }

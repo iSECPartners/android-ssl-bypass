@@ -3,7 +3,7 @@ package com.isecpartners.android.jdwp.common;
 public class Message {
 
 	public static enum Type {
-		CONNECT, CONNECTED, DISCONNECT, DISCONNECTED, EVENT, EVENT_HANDLED, STOP
+		CONNECT, CONNECTED, DISCONNECT, DISCONNECTED, EVENT, EVENT_HANDLED, STOP, LOAD_PLUGINS, INITIALIZE_PLUGIN
 	}
 
 	private Type name = null;
