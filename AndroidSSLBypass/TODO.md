@@ -1,4 +1,5 @@
-* Currently not calling tearDownEvents() for plugins to remove breakpoints, etc.
+* Currently not calling tearDownEvents() for plugins to remove breakpoints, 
+  etc.
 
 * No support for multiple handlers for a single event
 
