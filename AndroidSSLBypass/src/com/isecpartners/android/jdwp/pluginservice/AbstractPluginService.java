@@ -14,13 +14,13 @@ import com.isecpartners.android.jdwp.VirtualMachineEventManager;
 public abstract class AbstractPluginService implements PluginService {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(AbstractPluginService.class.getName());
-	private File path;
+	protected File pluginsDir = new File(".");
 
 	protected AbstractPluginService(File dir) {
 		if (!dir.exists()) {
 			throw new IllegalArgumentException();
 		}
-		this.path = dir;
+		this.pluginsDir = dir;
 	}
 
 	public abstract Iterator<JDIPlugin> getPlugins();
@@ -35,7 +35,7 @@ public abstract class AbstractPluginService implements PluginService {
 			JDIPlugin plugin = iterator.next();
 			LOGGER.info("initializing the plugin " + plugin.getName());
 			try {
-				plugin.init(vmem, this.path.getAbsolutePath());
+				plugin.init(vmem, this.pluginsDir.getAbsolutePath());
 			} catch (LocationNotFoundException e) {
 				LOGGER.error("could not find location referenced by plugin: "
 						+ e);
@@ -56,9 +56,10 @@ public abstract class AbstractPluginService implements PluginService {
 		while (iterator.hasNext()) {
 			JDIPlugin plugin = iterator.next();
 			if (plugin.getName().equals(pluginName)) {
+				LOGGER.info(plugin.getName());
 				LOGGER.info("initializing the plugin " + plugin.getName());
 				try {
-					plugin.init(vmem, this.path.getAbsolutePath());
+					plugin.init(vmem, this.pluginsDir.getAbsolutePath());
 				} catch (LocationNotFoundException e) {
 					LOGGER.error("could not find location referenced by plugin: "
 							+ e);

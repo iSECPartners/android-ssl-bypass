@@ -12,18 +12,11 @@ public class JythonPluginService extends AbstractPluginService {
 			.getLogger(JythonPluginService.class.getName());
 
 	private static JythonPluginService pluginService;
-	private ArrayList<JDIPlugin> plugins = new ArrayList<JDIPlugin>();
+	private Iterator<JDIPlugin> plugins;
 
 	private JythonPluginService(File dir) {
 		super(dir);
-			for(File f : dir.listFiles()){
-				LOGGER.info(f.getAbsolutePath());
-				if(f.getAbsolutePath().endsWith(".py")){
-					JDIPlugin plugin = (JDIPlugin) this.getJythonObject(JDIPlugin.class.getName(), f.getAbsolutePath());
-					this.plugins .add(plugin);
-				}
-			}
-		}
+	}
 
 	public static JythonPluginService getInstance(File dir) {
 		if (JythonPluginService.pluginService == null) {
@@ -38,8 +31,8 @@ public class JythonPluginService extends AbstractPluginService {
 		Object javaInt = null;
 		PythonInterpreter interpreter = new PythonInterpreter();
 		interpreter.execfile(pathToJythonModule);
-		
-		int start = pathToJythonModule.lastIndexOf("\\") +1;
+
+		int start = pathToJythonModule.lastIndexOf("\\") + 1;
 		int end = pathToJythonModule.lastIndexOf(".");
 		String tempName = pathToJythonModule.substring(start, end);
 		LOGGER.info("tempname: " + tempName);
@@ -59,7 +52,14 @@ public class JythonPluginService extends AbstractPluginService {
 
 	@Override
 	public Iterator<JDIPlugin> getPlugins() {
-		// TODO Auto-generated method stub
-		return this.plugins.iterator();
+		ArrayList<JDIPlugin> pluginsArray = new ArrayList<JDIPlugin>();
+		for (File f : this.pluginsDir.listFiles()) {
+			if (f.getAbsolutePath().endsWith(".py")) {
+				JDIPlugin plugin = (JDIPlugin) this.getJythonObject(
+						JDIPlugin.class.getName(), f.getAbsolutePath());
+				pluginsArray.add(plugin);
+			}
+		}
+		return this.plugins = pluginsArray.iterator();
 	}
 }

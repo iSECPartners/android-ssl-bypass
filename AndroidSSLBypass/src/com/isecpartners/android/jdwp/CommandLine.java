@@ -147,8 +147,7 @@ public class CommandLine extends QueueAgent {
 			try {
 				this.sendMessage(new Message(Message.Type.STOP, "detach called"));
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error("could not send STOP message");
 			}
 			return "detach completed";
 		} else {
@@ -188,13 +187,15 @@ public class CommandLine extends QueueAgent {
 		return sb.toString();
 	}
 
+	
 	@Command(name = "init-plugin", abbrev = "ip")
 	public String initializePlugin(
 			@Param(name = "plugin name", description = "name of plugin to load") String pluginName) {
 		if (this.ctrl != null && this.ctrl.isConnected() && this.pluginService != null) {
 			try {
 				this.pluginService.initPlugin(this.ctrl.getVMEM(), pluginName);
-				return "succesfully initialized plugin: " + pluginName;
+				this.jythonPluginService.initPlugin(this.ctrl.getVMEM(), pluginName);
+				return "attempted to init plugin: " + pluginName;
 			} catch (NoVMSessionException e) {
 				
 			}

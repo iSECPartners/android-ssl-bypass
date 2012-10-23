@@ -132,8 +132,7 @@ public class TestJDIPlugin extends AbstractJDIPlugin {
 	}
 
 	@Override
-	public void setupEvents() throws LocationNotFoundException,
-			ReferenceTypeNotFoundException {
+	public void setupEvents() {
 		this.filename = this.properties.getProperty(FILTERS_FILENAME_KEY,
 				"filters");
 		this.easySSLSocketFactory = this.properties
@@ -158,6 +157,12 @@ public class TestJDIPlugin extends AbstractJDIPlugin {
 			}
 		} catch (IOException e) {
 			LOGGER.info("could not get filters filename");
+		} catch (LocationNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ReferenceTypeNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 

@@ -123,7 +123,6 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 		ThreadReference tr = event.thread();
 		DalvikUtils vmUtils = new DalvikUtils(event.virtualMachine(), event.thread());
 		StackFrame fr = null;
-
 		try {
 			// TODO should be abstracted away in VMUtils
 			fr = tr.frames().get(0);
@@ -308,7 +307,7 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 	}
 
 	@Override
-	public void setupEvents() throws LocationNotFoundException {
+	public void setupEvents() {
 		this.easySSLSocketFactory = this.properties
 				.getProperty(SSLBypassJDIPlugin.EXTERNAL_EASYSSLSOCKETFACTORY_CLASS);
 		this.externalSourceAPK = this.properties
@@ -334,16 +333,21 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 				&& (this.targetAppDataPath != null)
 				&& (this.targetAppLibPath != null)
 				&& (this.externalTrustManagerClass != null);
-		this.createBreakpointRequest(SSLBypassJDIPlugin.HTTPS_URL_CONN_INIT);
+		try {
+			this.createBreakpointRequest(SSLBypassJDIPlugin.HTTPS_URL_CONN_INIT);
+			this.createBreakpointRequest(SSLBypassJDIPlugin.SET_SSL_SOCKET_FACTORY);
 
-		this.createBreakpointRequest(SSLBypassJDIPlugin.SET_SSL_SOCKET_FACTORY);
+			this.createBreakpointRequest(SSLBypassJDIPlugin.SET_HOST_NAME_VERIFIER);
 
-		this.createBreakpointRequest(SSLBypassJDIPlugin.SET_HOST_NAME_VERIFIER);
+			this.createBreakpointRequest(SSLBypassJDIPlugin.SET_DEFAULT_HOST_NAME_VERIFIER);
 
-		this.createBreakpointRequest(SSLBypassJDIPlugin.SET_DEFAULT_HOST_NAME_VERIFIER);
-
-		this.createBreakpointRequest(SSLBypassJDIPlugin.CREATE_CONNECTION);
+			this.createBreakpointRequest(SSLBypassJDIPlugin.CREATE_CONNECTION);
+		} catch (LocationNotFoundException e) {
+			LOGGER.error("could not setup events: " + e);
+		}
 	}
+
+		
 
 	@Override
 	public void tearDownEvents() {

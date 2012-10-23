@@ -5,10 +5,12 @@ class TestJythonPlugin(AbstractJDIPlugin):
 
     def __init__(self):
         AbstractJDIPlugin.__init__(self,"TestJythonPlugin")
-        print "initalized TestJythonPlugin\n"
+        self.output("Python: initalized TestJythonPlugin")
 
     def setupEvents(self):
-        print "setupEvents\n"
+        self.output("Python: setupEvents")
+        self.createBreakpointRequest("javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier")
     
     def handleEvent(self, event):
-	   print event + "\n"
+        self.output(event.toString())
+        self.resumeEventSet()

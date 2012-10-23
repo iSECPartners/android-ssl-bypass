@@ -40,11 +40,14 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 
 	protected String basePath = null;
 
-	public AbstractJDIPlugin(String name) throws FileNotFoundException,
-			IOException {
+	public AbstractJDIPlugin(String name){
 		this.name = name;
 	}
 
+	public void output(String message){
+		LOGGER.info(message);
+	}
+	
 	public void createBreakpointRequest(String locationString)
 			throws LocationNotFoundException {
 
@@ -100,12 +103,7 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 		this.basePath = path;
 		this.propsPath = path + File.separator + this.getName() + ".prop";
 		this.properties.load(new FileInputStream(this.propsPath));
-		try {
-			this.setupEvents();
-		} catch (ReferenceTypeNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		this.setupEvents();
 	}
 
 	public void resumeEventSet() {
@@ -117,7 +115,7 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 	}
 
 	@Override
-	public abstract void setupEvents() throws LocationNotFoundException, ReferenceTypeNotFoundException;
+	public abstract void setupEvents();
 
 	@Override
 	public void tearDownEvents() {
