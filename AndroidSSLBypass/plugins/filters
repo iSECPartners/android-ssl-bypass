@@ -1,2 +1,1 @@
-javax.net.ssl.HttpsURLConnection
-org.apache.harmony.xnet.provider.jsse.OpenSSLSocketFactoryImpl
+com.android.internal.telephony.gsm.SmsMessage

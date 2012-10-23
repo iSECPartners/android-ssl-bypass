@@ -1,12 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="create_run_jar" name="Create Runnable Jar for Project AndroidSSLBypass with libraries in sub-folder">
    <property file="build.properties"/>
-   
+   <property file="env.properties"/>
+	<target name="compile">
+		<javac srcdir="src" destdir="bin" source="1.7" target="1.7"/>
+	</target>
+		
     <target name="create_run_jar">
         <jar destfile="asb.jar">
             <manifest>
                 <attribute name="Main-Class" value="com.isecpartners.android.jdwp.CommandLine"/>
-                <attribute name="Class-Path" value=". asb_lib/log4j-1.2.17.jar asb_lib/tools.jar asb_lib/jython-standalone-2.5.3.jar asb_lib/asg.cliche-020310.jar"/>
+                <attribute name="Class-Path" value=". asb_lib/ddmlib.jar asb_lib/log4j-1.2.17.jar asb_lib/tools.jar asb_lib/jython-standalone-2.5.3.jar asb_lib/asg.cliche-020310.jar"/>
             </manifest>
             <fileset dir="bin"/>
         </jar>
@@ -19,10 +22,12 @@
     	
     	<!--TODO This needs to be an environment variable -->
     	<copy file="${jdi.tools.location}" todir="asb_lib"/>
+    	<copy file="${ddmlib.location}" todir="asb_lib"/>
     </target>
 	
 	<target name="create_plugins_jar">
 		<jar destfile="plugins/plugins.jar">
+		    <fileset dir="bin/com/isecpartners/android/jdwp/plugin/"/>
 	    </jar>
 	</target>
 

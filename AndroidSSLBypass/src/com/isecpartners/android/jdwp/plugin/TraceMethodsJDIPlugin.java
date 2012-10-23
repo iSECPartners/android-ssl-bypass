@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -17,10 +18,12 @@ import com.isecpartners.android.jdwp.ReferenceTypeNotFoundException;
 import com.isecpartners.android.jdwp.pluginservice.AbstractJDIPlugin;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.IncompatibleThreadStateException;
+import com.sun.jdi.LocalVariable;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
 import com.sun.jdi.StackFrame;
 import com.sun.jdi.ThreadReference;
+import com.sun.jdi.Value;
 import com.sun.jdi.event.Event;
 import com.sun.jdi.event.MethodEntryEvent;
 
@@ -46,12 +49,19 @@ public class TraceMethodsJDIPlugin extends AbstractJDIPlugin {
 			MethodEntryEvent meEvent = (MethodEntryEvent) event;
 			ThreadReference tr = meEvent.thread();
 			StackFrame fr;
+			StringBuilder out = new StringBuilder("");
 			try {
 				fr = tr.frames().get(0);
 				Location loc = fr.location();
 				Method method = loc.method();
-				LOGGER.info(method.toString());
-				LOGGER.info(method.variables());
+				out.append("\n =============== \n" + method.toString() + "\n=============== \n");
+				out.append("local variables:\n");
+				Map<LocalVariable, Value> vars = fr.getValues(fr.visibleVariables());
+				for(LocalVariable key : vars.keySet()){
+					out.append("\t" + key + " : " + vars.get(key) + "\n");
+				}
+				out.append("\n =============== \n");
+				LOGGER.info(out.toString());
 			} catch (IncompatibleThreadStateException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

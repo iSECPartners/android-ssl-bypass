@@ -12,6 +12,7 @@ import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
+import com.isecpartners.android.jdwp.ClassLoaderUtils;
 import com.isecpartners.android.jdwp.ClassWrapper;
 import com.isecpartners.android.jdwp.Constants;
 import com.isecpartners.android.jdwp.DalvikUtils;
@@ -87,6 +88,7 @@ public class TestJDIPlugin extends AbstractJDIPlugin {
 		if (event instanceof MethodEntryEvent) {
 			MethodEntryEvent meEvent = (MethodEntryEvent) event;
 			ThreadReference tr = meEvent.thread();
+			DalvikUtils dalvikUtils = new DalvikUtils(meEvent.virtualMachine(),tr);
 			StackFrame fr;
 			try {
 				fr = tr.frames().get(0);
@@ -94,10 +96,11 @@ public class TestJDIPlugin extends AbstractJDIPlugin {
 				Method method = loc.method();
 				LOGGER.info(method.toString());
 				LOGGER.info(method.variables());
-				DalvikUtils dalvikUtils = this.vmem.getDalvikUtils(0);
-				ClassWrapper wrappedClass = dalvikUtils.loadExternalClassFromAPK(this.externalSourceAPK, this.targetAppDataPath, this.targetAppLibPath, this.externalTrustManagerClass, this.targetMainActivity);
+				
+				ClassLoaderUtils classLoaderUtils = dalvikUtils.getClassLoaderUtils();
+				ClassWrapper wrappedClass = classLoaderUtils.loadExternalClassFromAPK(this.externalSourceAPK, this.targetAppDataPath, this.targetAppLibPath, this.externalTrustManagerClass, this.targetMainActivity);
 				ObjectReference newInst = wrappedClass.newInstance();
-				Value result = wrappedClass.invokeMethodOnInstance("toString", Constants.NOARGS);
+				Value result = wrappedClass.invokeMethodOnInstance("getClass", Constants.NOARGS);
 				LOGGER.info("GOT RESULTS oF CALLING TOSTRING: " + result);
 			} catch (IncompatibleThreadStateException e) {
 				// TODO Auto-generated catch block

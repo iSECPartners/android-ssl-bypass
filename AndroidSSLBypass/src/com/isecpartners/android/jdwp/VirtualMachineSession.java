@@ -1,6 +1,7 @@
 package com.isecpartners.android.jdwp;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -39,16 +40,16 @@ public class VirtualMachineSession extends QueueAgent {
 
 	private VirtualMachineEventManager vmem;
 
-	Iterator<JDIPlugin> vmHandlers = null;
+	ArrayList<JDIPlugin> vmHandlers = null;
 
 	private DalvikUtils vmUtils = null;
 
-	public VirtualMachineSession(String host, String port, Iterator<JDIPlugin> vmHandlers)
+	public VirtualMachineSession(String host, String port, ArrayList<JDIPlugin> vmHandlers2)
 			throws NoAttachingConnectorException {
 		this.setName("vm session");
 		this.host = host;
 		this.port = port;
-		this.vmHandlers = vmHandlers;
+		this.vmHandlers = vmHandlers2;
 	}
 
 	public void connect(String port) throws NoAttachingConnectorException,
@@ -84,7 +85,7 @@ public class VirtualMachineSession extends QueueAgent {
 		return this.vm.allThreads();
 	}
 
-	public Iterator<JDIPlugin> getVMEventHandlers() {
+	public ArrayList<JDIPlugin> getVMEventHandlers() {
 		return this.vmHandlers;
 	}
 
@@ -190,7 +191,7 @@ public class VirtualMachineSession extends QueueAgent {
 		}
 	}
 
-	public Iterator<JDIPlugin> getPlguins() {
+	public ArrayList<JDIPlugin> getPlguins() {
 		return this.vmHandlers;
 	}
 }

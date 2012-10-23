@@ -1,5 +1,6 @@
 package com.isecpartners.android.jdwp;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
@@ -17,18 +18,18 @@ public class Control extends QueueAgent {
 	private String port = null;
 	private VirtualMachineSession vmSession = null;
 	private boolean connected = false;
-	private Iterator<JDIPlugin> vmHandlers = null;
+	private ArrayList<JDIPlugin> vmHandlers = new ArrayList<JDIPlugin>();
 
-	public Control(String host, String port, Iterator<JDIPlugin> vmHandlers) {
+	public Control(String host, String port, ArrayList<JDIPlugin> vmHandlers) {
 		this.host = host;
 		this.port = port;
 		this.vmHandlers  = vmHandlers;
 	}
 	
-	public Control(String port, Iterator<JDIPlugin> vmHandlers) {
+	public Control(String port, ArrayList<JDIPlugin> handlerPlugins) {
 		this.host = DEFAULT_HOST;
 		this.port = port;
-		this.vmHandlers  = vmHandlers;
+		this.vmHandlers  = handlerPlugins;
 	}
 
 	public boolean isConnected(){
@@ -91,7 +92,7 @@ public class Control extends QueueAgent {
 
 	}
 
-	public Iterator<JDIPlugin> getPlugins() throws NoVMSessionException {
+	public ArrayList<JDIPlugin> getPlugins() throws NoVMSessionException {
 		if(this.vmSession == null){
 			throw new NoVMSessionException();
 		}

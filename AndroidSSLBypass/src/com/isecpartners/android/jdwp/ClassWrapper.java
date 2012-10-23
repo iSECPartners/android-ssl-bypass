@@ -20,7 +20,7 @@ import com.sun.jdi.ThreadReference;
 import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 
-public class ClassWrapper extends Thread{
+public class ClassWrapper {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(ClassWrapper.class.getName());
 	private ClassObjectReference cor;

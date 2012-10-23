@@ -7,13 +7,13 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.isecpartners.android.jdwp.ClassLoaderUtils;
 import com.isecpartners.android.jdwp.ClassWrapper;
 import com.isecpartners.android.jdwp.Constants;
 import com.isecpartners.android.jdwp.DalvikUtils;
 import com.isecpartners.android.jdwp.DexClassLoaderNotFoundException;
 import com.isecpartners.android.jdwp.LocationNotFoundException;
 import com.isecpartners.android.jdwp.NoLoadClassMethodException;
-import com.isecpartners.android.jdwp.VMUtils;
 import com.isecpartners.android.jdwp.pluginservice.AbstractJDIPlugin;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.ClassNotLoadedException;
@@ -131,7 +131,7 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 			Method method = loc.method();
 			String name = method.name();
 			SSLBypassJDIPlugin.LOGGER.info("hit breakpont: " + name);
-
+			
 			if (name.equals(SSLBypassJDIPlugin.HTTPS_URL_CONN_INIT)) {
 				this.setAllowAllHostNameVerifier(vmUtils);
 				
@@ -200,10 +200,11 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 		ClassType ezssl = vmUtils.findClassType(this.easySSLSocketFactory);
 		ThreadReference tr = vmUtils.getCurrentThread();
 		ObjectReference ezsslObj = null;
+		ClassLoaderUtils classLoaderUtils = vmUtils.getClassLoaderUtils();
 		if (ezssl == null) {
 			SSLBypassJDIPlugin.LOGGER
 					.info("loading external class with DexClassLoader");
-			ezssl = (ClassType) vmUtils.loadExternalClassFromAPK(this.externalSourceAPK,
+			ezssl = (ClassType) classLoaderUtils.loadExternalClassFromAPK(this.externalSourceAPK,
 					this.targetAppDataPath, this.targetAppLibPath,
 					this.easySSLSocketFactory, targetMainActivity);
 
@@ -278,9 +279,8 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 			IncompatibleThreadStateException, InvocationException,
 			AbsentInformationException, DexClassLoaderNotFoundException,
 			NoLoadClassMethodException {
-		
-		
-		ClassWrapper classWrapper = vmUtils.loadExternalClassFromAPK(this.externalSourceAPK, this.targetAppDataPath, this.targetAppLibPath, this.externalTrustManagerClass, targetMainActivity);
+		ClassLoaderUtils classLoaderUtils = vmUtils.getClassLoaderUtils();
+		ClassWrapper classWrapper = classLoaderUtils.loadExternalClassFromAPK(this.externalSourceAPK, this.targetAppDataPath, this.targetAppLibPath, this.externalTrustManagerClass, targetMainActivity);
 		ObjectReference newInstance = classWrapper.getInstance();
 		LOGGER.info("new instance type: " + newInstance.referenceType().name());
 		Value sf = classWrapper.invokeMethodOnType(newInstance.referenceType(), "getSSLSocketFactory", Constants.NOARGS);

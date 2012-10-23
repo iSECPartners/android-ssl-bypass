@@ -29,11 +29,11 @@ public class VirtualMachineEventManager extends QueueAgent {
 
 	private VirtualMachine vm;
 	private HashMap<EventRequest, JDIPlugin> vmEvents;
-	private VMUtils vmUtils;
+	private DalvikUtils vmUtils;
 
 	public VirtualMachineEventManager(VirtualMachine vm) {
 		this.vm = vm;
-		this.vmUtils = this.getVmUtils(0);
+		this.vmUtils = new DalvikUtils(vm,0);
 		this.vmEvents = new HashMap<EventRequest, JDIPlugin>();
 	}
 
@@ -114,11 +114,6 @@ public class VirtualMachineEventManager extends QueueAgent {
 		return this.vm.eventQueue();
 	}
 
-	public VMUtils getVmUtils(int threadNum) {
-		VMUtils vmUtils = new VMUtils(this.vm, threadNum);
-		return vmUtils;
-	}
-
 	public void resumeEventSet() {
 		this.currentEventSet.resume();
 	}
@@ -157,7 +152,7 @@ public class VirtualMachineEventManager extends QueueAgent {
 		this.currentEventSet = eventSet;
 	}
 
-	public void setVmUtils(VMUtils vmUtils) {
+	public void setVmUtils(DalvikUtils vmUtils) {
 		this.vmUtils = vmUtils;
 	}
 
