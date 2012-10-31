@@ -12,7 +12,7 @@ themselves as handlers for those breakpoints. Currently the last plugin register
 The SSLBypassJDIPlugin found in the 'plugins' directory implements bypassing SSL for certain implementations of SSL and 
 certificate pinning. The process for bypassing SSL checks is simply to set breakpoints on certain functions and replace 
 the TrustManager (http://developer.android.com/reference/javax/net/ssl/TrustManager.html) in use with one that trusts all certificates.
-The HostNameVerifier (http://developer.android.com/reference/javax/net/ssl/HostnameVerifier.html) is also replaced to 
+The HostNameVerifier (http://developer.android.com/reference/javax/net/ssl/HostnameVerifier.html) is also replaced with
 the ALLOW_ALL_HOSTNAME_VERIFIER.
 
 Requirements
@@ -25,8 +25,11 @@ Requirements
 * Java
 
 * A debuggable app to test:
+
     * App with "debuggable" flag in Application Manifest
+
     * Any app on emulator
+    
     * Any app on device with ro.debuggable=1 or ro.secure=0 (check "adb shell getprop ro.debugabble")
 
 * Only tested on Windows 7 and Ubuntu 10.04, 12.04
@@ -34,74 +37,73 @@ Requirements
 Basic Usage
 ==================
 
-0. Currently it is best to just run the binary from the AndroidSSLBypass root directory. Eventually 
-this will be fixed, but for now this is the only supported/tested usage.
+    * Currently it is best to just run the binary from the AndroidSSLBypass root directory. Eventually 
+    this will be fixed, but for now this is the only supported/tested usage.
 
-1. Start a debugging session, passing the path to ADB (optional but provides access to list device and client commands):
+    * Start a debugging session, passing the path to ADB (optional but provides access to list device and client commands):
 
-    java -jar asb.jar --adb-location "c:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe"
+        java -jar asb.jar --adb-location "c:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe"
 
-    * Type ?list for a list of commands
+        Type ?list for a list of commands
 
-2. List devices:
+    * List devices:
 
-    ASB>> ld
-    Devices:
-                    emulator-5554 : droid16 [emulator-5554]
+        ASB>> ld
+        Devices:
+                        emulator-5554 : droid16 [emulator-5554]
 
-3. Select a device:
+    * Select a device:
 
-    ASB>> sd emulator-5554
-    Selected Device:
-                    emulator-5554
+        ASB>> sd emulator-5554
+        Selected Device:
+                        emulator-5554
 
-4. List clients:
+    * List clients:
 
-    ASB>> lsc
-    Clients on: emulator-5554
-                    com.google.process.gapps : 8600
-                    com.android.systemui : 8601
-                    com.android.email : 8602
-                    com.android.calendar : 8603
-                    com.google.android.apps.maps:LocationFriendService : 8604
-                    com.android.providers.calendar : 8605
-                    com.google.android.apps.maps : 8606
-                    com.android.contacts : 8607
-                    com.android.exchange : 8608
-                    com.google.android.apps.maps:FriendService : 8609
-                    com.android.deskclock : 8610
-                    com.android.launcher : 8611
-                    com.android.inputmethod.latin : 8612
-                    com.android.phone : 8613
-                    com.android.mms : 8614
-                    android.process.media : 8615
-                    com.isec.ssltest : 8616
-                    com.android.settings : 8617
-                    system_process : 8618
-                    android.process.acore : 8619
+        ASB>> lsc
+        Clients on: emulator-5554
+                        com.google.process.gapps : 8600
+                        com.android.systemui : 8601
+                        com.android.email : 8602
+                        com.android.calendar : 8603
+                        com.google.android.apps.maps:LocationFriendService : 8604
+                        com.android.providers.calendar : 8605
+                        com.google.android.apps.maps : 8606
+                        com.android.contacts : 8607
+                        com.android.exchange : 8608
+                        com.google.android.apps.maps:FriendService : 8609
+                        com.android.deskclock : 8610
+                        com.android.launcher : 8611
+                        com.android.inputmethod.latin : 8612
+                        com.android.phone : 8613
+                        com.android.mms : 8614
+                        android.process.media : 8615
+                        com.isec.ssltest : 8616
+                        com.android.settings : 8617
+                        system_process : 8618
+                        android.process.acore : 8619
 
-5. Attach to client:
-    
-    ASB>> a 8616
+    * Attach to client:
+        
+        ASB>> a 8616
 
-6. Load plugins:
+    * Load plugins:
 
-    ASB>> lp plugins
+        ASB>> lp plugins
 
-    loadedPlugins:
-        com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
-        com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
-        com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
-        com.isecpartners.android.jdwp.plugin.TestJDIPlugin
-        TestJythonPlugin
+        loadedPlugins:
+            com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+            com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
+            com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
+            com.isecpartners.android.jdwp.plugin.TestJDIPlugin
+            TestJythonPlugin
 
-7. Initialize plugin:
+    * Initialize plugin:
 
-    ASB>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+        ASB>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
 
-8. Now everything is setup, do the action in the app that causes an SSL connection to be made
 
-9. Breakpoints should be hit and handled via the initialized plugins
+After the plugin has been successfully initialized, do the action in the app that causes an SSL connection to be made. Breakpoints should be hit and handled via the initialized plugins.
 
 
 SSLBypassJDIPlugin, AndroidSSLBypassHelperApp, SSLTestApp
