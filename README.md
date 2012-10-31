@@ -38,11 +38,17 @@ Requirements
 
 * Only tested on Windows 7 and Ubuntu 10.04
 
+* If testing with included test app and test server, python and twisted (http://twistedmatrix.com/trac/)
+
 Basic Usage
 ==================
 
     * Currently it is best to just run the binary from the AndroidSSLBypass root directory. Eventually 
     this will be fixed, but for now this is the only supported/tested usage.
+
+    * To run SSLBypassJDIPlugin first install the included helper app AndroidSSLBypassHelperApp
+
+        adb install AndroidSSLBypassHelperApp.apk
 
     * Start a debugging session, passing the path to ADB (optional but provides access to list device and client commands):
 
@@ -110,14 +116,16 @@ Basic Usage
 After the plugin has been successfully initialized, do the action in the app that causes an SSL connection to be made. Breakpoints should be hit and handled via the initialized plugins.
 
 
-SSLBypassJDIPlugin, AndroidSSLBypassHelperApp, SSLTestApp
+SSLBypassJDIPlugin, AndroidSSLBypassHelperApp, SSLTestApp, twistedsslserver.py
 ==================
 
 This is the debugger plugin that implements bypassing SSL checks. This will only work for apps which implement 
 certificate pinning or SSL in a particular way. It is left as an exercise for the user to implement a better
 plugin which will bypass *all* methods of doing SSL in Android. This plugin depends on loading source from an 
-external location into the app process space. Therefore, this plugin requires that a helper app also be installed
-AndroidSSLBypassHelperApp. This plugin can be tested with the corresponding test app SSLTestApp. 
+external location into the app process space. Therefore, this plugin requires that a helper app also be installed:
+AndroidSSLBypassHelperApp. This plugin can be tested with the corresponding test app SSLTestApp.
+
+twistdsslserver.py is used in correspondence with the SSLTestApp - twisted (http://twistedmatrix.com/trac/) must be installed to run
 
 Known Issues
 ==================
@@ -138,7 +146,26 @@ Building
 
     * ddmlib is found in the Android SDK at: android-sdk\tools\lib\ddmlib.jar
 
+    * tools.jar is found in the JDK libs, for example: C:/Program Files (x86)/Java/jdk1.7.0_05/lib/tools.jar
+
 * Run the ant build file: build.xml
+
+Testing
+===================
+
+    * Run tests using the emulator
+
+    * Install AndroidSSLBypassHelperApp
+
+    * Install SSLTestApp
+
+    * Setup proxy
+
+    * Right now SSLTestApp points to the host as seen from the emulator (10.0.2.2)
+
+        * This is hardcoded for now, a better test app will be included in the future
+        
+    * Follow the basic usage instructions for running SSLBypassJDIPlugin
 
 Writing new plugins
 ===================
@@ -154,18 +181,23 @@ A: This is due to caching that happens during the first run of the debugger. Thi
 which a solution is being worked on. 
 
 Q: Why does the SSLBYpassJDIPlugin not work for my app?
+
 A: Because it has not been implemented yet! Check out the info on writing your own plugin to bypass SSL for your particular app.
 
 Q: Why do I get a ClassCastException when running the SSLBypassJDIPlugin?
 
 A: This is the result of the way the plugin uses reflection to obtain a new TrustManager and is a known issue. 
     
-    The solution:
+    The workaround:
         
         * The first time plugin is run on the app the exception is hit
         
         * Stop the debugger but do not close the app
+            
             * If the app hangs after the debugger is closed check the following:
-                * Do you have the test server running and proxy?
+               
+                * Do you have internet acces and proxy running?
+
+                * If testing with included test app do you have the test server and proxy running?
 
         * Start the debugger again and run the plugin - this time no exception should be thrown
