@@ -9,20 +9,14 @@
         <jar destfile="asb.jar">
             <manifest>
                 <attribute name="Main-Class" value="com.isecpartners.android.jdwp.CommandLine"/>
-                <attribute name="Class-Path" value=". asb_lib/ddmlib.jar asb_lib/log4j-1.2.17.jar asb_lib/tools.jar asb_lib/jython-standalone-2.5.3.jar asb_lib/asg.cliche-020310.jar"/>
+                <attribute name="Class-Path" value=". libs/ddmlib.jar libs/log4j-1.2.17.jar libs/tools.jar libs/jython-standalone-2.5.3.jar libs/asg.cliche-020310.jar libs/args4j-2.0.21.jar"/>
             </manifest>
             <fileset dir="bin"/>
         </jar>
-        <delete dir="asb_lib"/>
-        <mkdir dir="asb_lib"/>
-    	
-        <copy file="libs/log4j-1.2.17.jar" todir="asb_lib"/>
-        <copy file="libs/jython-standalone-2.5.3.jar" todir="asb_lib"/>
-        <copy file="libs/asg.cliche-020310.jar" todir="asb_lib"/>
     	
     	<!--TODO This needs to be an environment variable -->
-    	<copy file="${jdi.tools.location}" todir="asb_lib"/>
-    	<copy file="${ddmlib.location}" todir="asb_lib"/>
+    	<copy file="${jdi.tools.location}" todir="libs"/>
+    	<copy file="${ddmlib.location}" todir="libs"/>
     </target>
 	
 	<target name="create_plugins_jar">

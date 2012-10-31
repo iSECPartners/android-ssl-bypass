@@ -16,9 +16,9 @@ public class ADBInterface implements IDeviceChangeListener, IClientChangeListene
 	private IDevice currentDevice;
 	private Client[] clients;
 	
-	public ADBInterface(){
+	public ADBInterface(String adbLocation){
 		AndroidDebugBridge.init(true);
-		AndroidDebugBridge.createBridge(Constants.ADB_LOCATION, true);
+		AndroidDebugBridge.createBridge(adbLocation, true);
 		AndroidDebugBridge.addDebugBridgeChangeListener(this);
 		this.startDeviceListener();
 	}

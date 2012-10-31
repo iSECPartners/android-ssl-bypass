@@ -40,6 +40,8 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 
 	protected String basePath = null;
 
+	private File propsFile;
+
 	public AbstractJDIPlugin(String name){
 		this.name = name;
 	}
@@ -102,7 +104,10 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 		this.vmem = vmem;
 		this.basePath = path;
 		this.propsPath = path + File.separator + this.getName() + ".prop";
-		this.properties.load(new FileInputStream(this.propsPath));
+		this.propsFile = new File(this.propsPath);
+		if(this.propsFile.isFile()){
+			this.properties.load(new FileInputStream(this.propsPath));
+		}
 		this.setupEvents();
 	}
 
