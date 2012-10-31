@@ -15,6 +15,10 @@ the TrustManager (http://developer.android.com/reference/javax/net/ssl/TrustMana
 The HostNameVerifier (http://developer.android.com/reference/javax/net/ssl/HostnameVerifier.html) is also replaced with
 the ALLOW_ALL_HOSTNAME_VERIFIER.
 
+The hope is that the tool can be used as a starting point for further development. It is very much a work in progress, and will be frequently updated in the near future.
+
+A very beta version was presented at BlackHat USA 2012: http://media.blackhat.com/bh-us-12/Turbo/Diquet/BH_US_12_Diqut_Osborne_Mobile_Certificate_Pinning_Slides.pdf
+
 Requirements
 ==================
 
@@ -32,7 +36,7 @@ Requirements
     
     * Any app on device with ro.debuggable=1 or ro.secure=0 (check "adb shell getprop ro.debugabble")
 
-* Only tested on Windows 7 and Ubuntu 10.04, 12.04
+* Only tested on Windows 7 and Ubuntu 10.04
 
 Basic Usage
 ==================
@@ -135,6 +139,11 @@ Building
     * ddmlib is found in the Android SDK at: android-sdk\tools\lib\ddmlib.jar
 
 * Run the ant build file: build.xml
+
+Writing new plugins
+===================
+
+*TODO
 
 FAQ
 ==================
