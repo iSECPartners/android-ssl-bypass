@@ -47,8 +47,9 @@
         <delete file="asb.jar"/>
         <delete file="plugins/plugins.jar"/>
         <delete dir="bin"/>
-        <delete file="${jdi.tools.location}" />
-        <delete file="${ddmlib.location}" />
+        <delete file="libs/ddmlib.jar" />
+        <delete file="libs/classes.jar" />
+        <delete file="libs/tools.jar" />
     </target>
 
 </project>
