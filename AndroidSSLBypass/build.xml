@@ -2,7 +2,14 @@
    <property file="build.properties"/>
    <property file="env.properties"/>
 	<target name="compile">
-		<javac srcdir="src" destdir="bin" source="1.7" target="1.7"/>
+        <mkdir dir="bin"/>
+        <javac srcdir="src" destdir="bin" source="1.6" target="1.6" includeantruntime="false">
+            <classpath>
+                <path>
+                    <fileset dir="libs" includes="**/*.jar" />
+                </path>
+            </classpath>
+        </javac>
 	</target>
 		
     <target name="create_run_jar">
