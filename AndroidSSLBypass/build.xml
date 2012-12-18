@@ -41,4 +41,12 @@
 	    </jar>
 	</target>
 
+    <target name="clean">
+        <delete file="asb.jar"/>
+        <delete file="plugins/plugins.jar"/>
+        <delete dir="bin"/>
+        <delete file="${jdi.tools.location}" />
+        <delete file="${ddmlib.location}" />
+    </target>
+
 </project>
