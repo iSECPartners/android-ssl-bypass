@@ -1,11 +1,11 @@
 <project default="create_run_jar" name="Create Runnable Jar for Project AndroidSSLBypass with libraries in sub-folder">
     <property file="local.properties"/>
-   <property file="build.properties"/>
-   <property file="env.properties"/>
+    <property file="build.properties"/>
+    <property file="env.properties"/>
 
-    <!-- Java 1.6 and earlier on Mac OS X has the tools.jar classes elsewhere... -->
+    <!-- Java 1.6 and earlier on Mac OS X has the tools.jar classes in class.jar... -->
     <available property="jdi.tools.location" file="${java.home}/../Classes/classes.jar" value="${java.home}/../Classes/classes.jar" />
-    <!-- but the proper location... -->
+    <!-- Everything else should use the proper location... -->
     <available property="jdi.tools.location" file="${java.home}/lib/tools.jar" value="${java.home}/lib/tools.jar" />
 
     <target name="copy_libs">
@@ -23,8 +23,8 @@
                 </path>
             </classpath>
         </javac>
-	</target>
-		
+    </target>
+
     <target name="create_run_jar" depends="compile">
         <jar destfile="asb.jar">
             <manifest>
