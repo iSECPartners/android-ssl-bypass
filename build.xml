@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="android-ssl-bypass" default="help">
+
+    <property name="helper.dir" value="AndroidSSLBypassHelperApp"/>
+    <property name="bypass.dir" value="AndroidSSLBypass"/>
+
+    <target name="init">
+        <echo message="Creating local.properties for ${helper.dir}"/>
+        <exec executable="android">
+            <arg value="update" />
+            <arg value="project" />
+            <arg value="--path" />
+            <arg value="${helper.dir}" />
+        </exec>
+        <echo message="Copying it to ${bypass.dir}"/>
+        <copy file="${helper.dir}/local.properties" todir="${bypass.dir}"/>
+    </target>
+
+    <target name="helper-debug" depends="init">
+        <ant dir="${helper.dir}" target="debug"/>
+    </target>
+    <target name="helper-release" depends="init">
+        <ant dir="${helper.dir}" target="release"/>
+    </target>
+
+    <target name="asb" depends="init">
+        <ant dir="${bypass.dir}" target="jar_asb"/>
+        <ant dir="${bypass.dir}" target="jar_plugins"/>
+    </target>
+
+    <target name="help">
+        <echo message="init             Create a local.properties file for the sub projects" />
+        <echo message="asb              Build ${bypass.dir}'s jar files" />
+        <echo message="helper-release   Build the ${helper.dir} helper app" />
+        <echo message="helper-debug     Debug build the ${helper.dir} helper app" />
+    </target>
+
+    <target name="clean">
+        <ant dir="${bypass.dir}" target="clean"/>
+        <ant dir="${helper.dir}" target="clean"/>
+    </target>
+</project>

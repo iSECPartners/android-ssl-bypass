@@ -1,11 +1,31 @@
-<project default="create_run_jar" name="Create Runnable Jar for Project AndroidSSLBypass with libraries in sub-folder">
-   <property file="build.properties"/>
-   <property file="env.properties"/>
-	<target name="compile">
-		<javac srcdir="src" destdir="bin" source="1.7" target="1.7"/>
-	</target>
-		
-    <target name="create_run_jar">
+<project default="jars" name="Create Runnable Jar for Project AndroidSSLBypass with libraries in sub-folder">
+    <property file="local.properties"/>
+    <property file="build.properties"/>
+    <property file="env.properties"/>
+
+    <!-- Java 1.6 and earlier on Mac OS X has the tools.jar classes in class.jar... -->
+    <available property="jdi.tools.location" file="${java.home}/../Classes/classes.jar" value="${java.home}/../Classes/classes.jar" />
+    <!-- Everything else should use the proper location... -->
+    <available property="jdi.tools.location" file="${java.home}/lib/tools.jar" value="${java.home}/lib/tools.jar" />
+
+    <target name="copy_libs">
+        <!--TODO This needs to be an environment variable -->
+        <copy file="${jdi.tools.location}" todir="libs"/>
+        <copy file="${ddmlib.location}" todir="libs"/>
+    </target>
+
+    <target name="compile" depends="copy_libs">
+        <mkdir dir="bin"/>
+        <javac srcdir="src" destdir="bin" source="1.6" target="1.6" includeantruntime="false">
+            <classpath>
+                <path>
+                    <fileset dir="libs" includes="**/*.jar" />
+                </path>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="jar_asb" depends="compile">
         <jar destfile="asb.jar">
             <manifest>
                 <attribute name="Main-Class" value="com.isecpartners.android.jdwp.CommandLine"/>
@@ -13,16 +33,23 @@
             </manifest>
             <fileset dir="bin"/>
         </jar>
-    	
-    	<!--TODO This needs to be an environment variable -->
-    	<copy file="${jdi.tools.location}" todir="libs"/>
-    	<copy file="${ddmlib.location}" todir="libs"/>
     </target>
-	
-	<target name="create_plugins_jar">
-		<jar destfile="plugins/plugins.jar">
-		    <fileset dir="bin/com/isecpartners/android/jdwp/plugin/"/>
-	    </jar>
-	</target>
+
+    <target name="jar_plugins">
+        <jar destfile="plugins/plugins.jar">
+            <fileset dir="bin/com/isecpartners/android/jdwp/plugin/"/>
+        </jar>
+    </target>
+
+    <target name="jars" depends="jar_asb,jar_plugins" />
+
+    <target name="clean">
+        <delete file="asb.jar"/>
+        <delete file="plugins/plugins.jar"/>
+        <delete dir="bin"/>
+        <delete file="libs/ddmlib.jar" />
+        <delete file="libs/classes.jar" />
+        <delete file="libs/tools.jar" />
+    </target>
 
 </project>
