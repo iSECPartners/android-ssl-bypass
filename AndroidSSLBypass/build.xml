@@ -25,7 +25,7 @@
         </javac>
 	</target>
 		
-    <target name="create_run_jar">
+    <target name="create_run_jar" depends="compile">
         <jar destfile="asb.jar">
             <manifest>
                 <attribute name="Main-Class" value="com.isecpartners.android.jdwp.CommandLine"/>
