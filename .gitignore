@@ -17,5 +17,4 @@ gen/
 local.properties
 .classpath
 .project
-project.properties
 proguard-project.txt
