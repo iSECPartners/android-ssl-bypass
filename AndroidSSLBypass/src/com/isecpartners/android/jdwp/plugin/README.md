@@ -10,4 +10,16 @@ them. These plugins must implement the JDIPlugin interface.
 		
   * org.apache.http.* 
 	
- * JythonConsoleDebuggerPlugin
+ * JythonConsoleJDIPlugin
+ 
+ 	* Starts a Jython console (http://code.google.com/p/jythonconsole/) at specified breakpoint
+ 	
+ 	* Console has code completion! Nice to examine stuff at runtime and debug plugin code
+ 	
+ * TraceMethodsJDIPlugin
+ 
+ 	* Traces methods of specified classes
+ 	
+ * TestJDIPlugin
+ 
+ 	* Will eventually be used to run tests on plugin lib code

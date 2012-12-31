@@ -2,14 +2,15 @@
     <property file="local.properties"/>
     <property file="build.properties"/>
     <property file="env.properties"/>
-
     <!-- Java 1.6 and earlier on Mac OS X has the tools.jar classes in class.jar... -->
     <available property="jdi.tools.location" file="${java.home}/../Classes/classes.jar" value="${java.home}/../Classes/classes.jar" />
-    <!-- Everything else should use the proper location... -->
-    <available property="jdi.tools.location" file="${java.home}/lib/tools.jar" value="${java.home}/lib/tools.jar" />
-
+    <!-- Everything else should use the proper location... 
+    	however ../ is required because the default ant config sets to jre(?) need to test this on Windows
+    -->
+    <available property="jdi.tools.location" file="${java.home}/../lib/tools.jar" value="${java.home}/../lib/tools.jar" />
+   
+    <echo message="Location of java.home: ${java.home}, location of JDI tools/classes jar: ${jdi.tools.location}"/>
     <target name="copy_libs">
-        <!--TODO This needs to be an environment variable -->
         <copy file="${jdi.tools.location}" todir="libs"/>
         <copy file="${ddmlib.location}" todir="libs"/>
     </target>
