@@ -5,11 +5,12 @@
     <!-- Java 1.6 and earlier on Mac OS X has the tools.jar classes in class.jar... -->
     <available property="jdi.tools.location" file="${java.home}/../Classes/classes.jar" value="${java.home}/../Classes/classes.jar" />
     <!-- Everything else should use the proper location... 
-    	however ../ is required because the default ant config sets to jre(?) need to test this on Windows
+    	however ../ is required because the default ant config sets to jre dir (?)
     -->
+    <available property="jdi.tools.location" file="${java.home}/lib/tools.jar" value="${java.home}/lib/tools.jar" />
     <available property="jdi.tools.location" file="${java.home}/../lib/tools.jar" value="${java.home}/../lib/tools.jar" />
-   
     <echo message="Location of java.home: ${java.home}, location of JDI tools/classes jar: ${jdi.tools.location}"/>
+
     <target name="copy_libs">
         <copy file="${jdi.tools.location}" todir="libs"/>
         <copy file="${ddmlib.location}" todir="libs"/>
@@ -17,7 +18,7 @@
 
     <target name="compile" depends="copy_libs">
         <mkdir dir="bin"/>
-        <javac srcdir="src" destdir="bin" source="1.6" target="1.6" includeantruntime="false">
+        <javac srcdir="src" destdir="bin" includeantruntime="false">
             <classpath>
                 <path>
                     <fileset dir="libs" includes="**/*.jar" />
@@ -27,13 +28,19 @@
     </target>
 
     <target name="jar_asb" depends="compile">
-        <jar destfile="asb.jar">
+        <jar destfile="asb.jar" indexMetaInf="true">
             <manifest>
                 <attribute name="Main-Class" value="com.isecpartners.android.jdwp.CommandLine"/>
                 <attribute name="Class-Path" value=". libs/ddmlib.jar libs/log4j-1.2.17.jar libs/tools.jar libs/jython-standalone-2.5.3.jar libs/asg.cliche-020310.jar libs/args4j-2.0.21.jar"/>
-            </manifest>
-            <fileset dir="bin"/>
-        </jar>
+	</manifest>
+	<fileset dir="bin"/>
+	<service type="com.isecpartners.android.jdwp.pluginservice.JDIPlugin">
+		<provider classname="com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin"/>
+		<provider classname="com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin"/>
+		<provider classname="com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin"/>
+		<provider classname="com.isecpartners.android.jdwp.plugin.TestJDIPlugin"/>
+	</service>
+       </jar>
     </target>
 
     <target name="jar_plugins">

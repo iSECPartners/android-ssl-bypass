@@ -1,10 +1,15 @@
 package com.isecpartners.android.jdwp;
 
+import static org.kohsuke.args4j.ExampleMode.ALL;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.EnhancedPatternLayout;
@@ -15,7 +20,6 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
-import static org.kohsuke.args4j.ExampleMode.ALL;
 
 import asg.cliche.Command;
 import asg.cliche.Param;
@@ -25,25 +29,32 @@ import com.android.ddmlib.Client;
 import com.android.ddmlib.IDevice;
 import com.isecpartners.android.jdwp.common.Message;
 import com.isecpartners.android.jdwp.common.QueueAgent;
+import com.isecpartners.android.jdwp.connection.NoAttachingConnectorException;
+import com.isecpartners.android.jdwp.pluginservice.AbstractJDIPlugin;
 import com.isecpartners.android.jdwp.pluginservice.JDIPlugin;
+import com.isecpartners.android.jdwp.pluginservice.JDIPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JDIPluginServiceFactory;
+import com.isecpartners.android.jdwp.pluginservice.JythonPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginServiceFactory;
 import com.isecpartners.android.jdwp.pluginservice.PluginService;
+import com.sun.jdi.request.EventRequest;
 
 public class CommandLine extends QueueAgent {
 
-	private static final String INDENT = "\t\t";
+	private static final String INDENT = "\t";
 	private ADBInterface adb;
 	private static Logger LOGGER = Logger
 			.getLogger(CommandLine.class.getName());
 
 	private Control ctrl;
 	private Iterator<JDIPlugin> vmHandlers;
-	private PluginService pluginService;
+	private JDIPluginService pluginService;
 	private IDevice currentDevice;
-	private PluginService jythonPluginService;
+	private JythonPluginService jythonPluginService;
 	private Iterator<JDIPlugin> jythonHandlers;
 	private ArrayList<JDIPlugin> handlerPlugins = new ArrayList<JDIPlugin>();
+	private File propsFile;
+	protected Properties defaultProperties = new Properties();
 
 	@Argument
 	private List<String> arguments = new ArrayList<String>();
@@ -54,35 +65,88 @@ public class CommandLine extends QueueAgent {
 	@Option(name = "--help", usage = "display usage")
 	private boolean usage = false;
 
+	@Option(name = "--config", usage = "use specified configuration file")
+	private String propsPath = "defaults.prop";
+
+	@Option(name = "--plugins-path", usage = "set path to load plugins from")
+	private String pluginsPath = "plugins";
+
+	private boolean connected = false;
+
+	public void run() {
+		boolean done = false;
+		LOGGER.debug("starting cmdline thread");
+		while (done == false) {
+			LOGGER.info("entering loop");
+			Message msg;
+			try {
+				msg = this.getMessage();
+				LOGGER.info(msg);
+				switch (msg.getType()) {
+				case SESSION_STARTED:
+					this.output("sucessfully attached");
+					this.connected = true;
+					break;
+
+				case DISCONNECTED:
+					LOGGER.info("VM disconected, quitting: " + msg.getObject());
+					this.connected = false;
+					// could also wait for it to start again?
+					done = true;
+					break;
+
+				case OUTPUT:
+					LOGGER.info("OUTPUT recieved: " + msg.getObject());
+					this.output((String) msg.getObject());
+					break;
+
+				default:
+					LOGGER.info("got message:" + msg.getType().name());
+					break;
+
+				}
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				done = true;
+			}
+		}
+		LOGGER.info("exiting loop");
+
+	}
+
+	private void output(String string) {
+		System.out.println(string);
+	}
+
 	public void doMain(String[] args) throws IOException {
 		CmdLineParser parser = new CmdLineParser(this);
-
-		// if you have a wider console, you could increase the value;
-		// here 80 is also the default
 		parser.setUsageWidth(80);
-		try {
-			// parse the arguments.
-			parser.parseArgument(args);
 
+		this.propsFile = new File(this.propsPath);
+		if (this.propsFile.isFile()) {
+			this.defaultProperties.load(new FileInputStream(this.propsPath));
+			this.adbLocation = this.defaultProperties
+					.getProperty(Constants.ADB_LOCATION_PROP);
+		}
+
+		try {
+			parser.parseArgument(args);
 		} catch (CmdLineException e) {
-			// if there's a problem in the command line,
-			// you'll get this exception. this will report
-			// an error message.
+
 			System.err.println(e.getMessage());
 			return;
 		}
 
-		if (adbLocation == null && usage) {
+		if (usage) {
 
-			System.err.println("ASB Usage:\n\n");
-			System.err.println("java -jar asb.jar [options...]\n");
+			System.err.println("Android Debug Shell Usage:\n\n");
+			System.err.println("java -jar ads.jar [options...]\n");
 
-			// print the list of available options
 			parser.printUsage(System.err);
 			System.err.println();
 
-			// print option sample. This is useful some time
-			System.err.println("  Example: java -jar asb.jar"
+			System.err.println("  Example: java -jar ads.jar"
 					+ parser.printExample(ALL) + "\n");
 			System.exit(0);
 		}
@@ -114,30 +178,74 @@ public class CommandLine extends QueueAgent {
 		c.setWriter(new PrintWriter(System.out));
 		c.setLayout(layout);
 
-		Logger.getRootLogger().addAppender(c);
+		// Logger.getRootLogger().addAppender(c);
 
 		try {
 			FileAppender f = new org.apache.log4j.FileAppender(layout,
 					"logs.txt");
+			f.setLayout(layout);
 			Logger.getRootLogger().addAppender(f);
 		} catch (IOException e1) {
 			LOGGER.error("could not get file appender: " + e1);
 		}
 
+		CommandLine cmdLine = new CommandLine();
 		try {
-			CommandLine cmdLine = new CommandLine();
 			cmdLine.doMain(args);
+			cmdLine.start();
 			ShellFactory
 					.createConsoleShell(
-							"ASB>",
+							"ads>",
 							"\n====================\n Welcome to ANDROID DEBUG SHELL\nType ?list for list of commands\n====================\n",
 							cmdLine).commandLoop();
 		} catch (IOException e) {
-			LOGGER.error("main exited with exception: " + e);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+
 	}
 
-	@Command(name = "list-devices", abbrev = "ld", description = "List available devices")
+	/**
+	 * Sets the path to the adb executable which is used for obtaining
+	 * information such as running processes and their listening JDWP ports.
+	 * 
+	 * @param pathToADB
+	 *            Local path to the adb executable on host system.
+	 * @return Result of command output.
+	 */
+	@Command(name = "set-adb-loc", abbrev = "adb", description = "Set the location of adb for access to list-devices command")
+	public String setADBLocation(
+			@Param(name = "pathToADB", description = "Set the location of the adb executable to enable list devices command") String pathToADB) {
+		StringBuilder res = new StringBuilder();
+		File adb = new File(pathToADB);
+		if (adb.isFile()) {
+			this.adbLocation = pathToADB;
+			try {
+				this.adb = new ADBInterface(adbLocation);
+				res.append("success setting ADB location to: "
+						+ this.adbLocation);
+			} catch (Exception e) {
+				LOGGER.error("caught exception trying to start ADB interface: "
+						+ e);
+				this.adb = null;
+				res.append("Caught exception trying to start ADB interface: "
+						+ e
+						+ "\nList devices and clients commands will not work.\n");
+			}
+
+		} else {
+			res.append("could not set ADB location to: " + pathToADB
+					+ "; file not found");
+		}
+		return res.toString();
+	}
+
+	/**
+	 * List the available devices as returned by the "adb devices" command
+	 * 
+	 * @return Command result
+	 */
+	@Command(name = "list-devices", abbrev = "ld", description = "List available devices to debug")
 	public String listDevices() {
 		if (this.adb == null) {
 			LOGGER.error("could not start ADB interface");
@@ -151,6 +259,12 @@ public class CommandLine extends QueueAgent {
 		return sb.toString();
 	}
 
+	/**
+	 * Select the device by its id as reported by the command "adb devices"
+	 * 
+	 * @param devID
+	 * @return Command result
+	 */
 	@Command(name = "select-device", abbrev = "sd", description = "Select from available devices")
 	public String selectDevice(
 			@Param(name = "deviceid", description = "device id") String devID) {
@@ -171,7 +285,13 @@ public class CommandLine extends QueueAgent {
 		return sb.toString();
 	}
 
-	@Command(name = "list-clients", abbrev = "lsc", description = "List clients on current device")
+	/**
+	 * List the apps, or remote debugging clients, available for attach on the
+	 * device
+	 * 
+	 * @return
+	 */
+	@Command(name = "list-apps", abbrev = "apps", description = "List apps (remote debugging clients) on current device")
 	public String listClients() {
 		if (this.adb == null) {
 			LOGGER.error("could not start ADB interface");
@@ -189,7 +309,16 @@ public class CommandLine extends QueueAgent {
 		return sb.toString();
 	}
 
-	@Command(name = "attach", abbrev = "a", description = "Attach to JDWP process")
+	/**
+	 * Attach to the listening jdwp port for the given process (app).
+	 * 
+	 * @param host
+	 *            The address of the target device (localhost for emulator)
+	 * @param port
+	 *            The target listening jdwp port
+	 * @return Command result
+	 */
+	@Command(name = "attach", abbrev = "a", description = "Attach to listening JDWP port of application on device")
 	public String attach(
 			@Param(name = "host", description = "target virtual machine host") String host,
 			@Param(name = "port", description = "target virtual machine jdwp listening port (see 'list-devices and list-clients' or use DDMS to discover port)") String port) {
@@ -199,11 +328,32 @@ public class CommandLine extends QueueAgent {
 			return "could not connect, already attached to VM";
 		}
 		this.ctrl = new Control(host, port, this.handlerPlugins);
-		this.setQueueAgentListener(ctrl);
+		//this is not working probably due to conflict with the VirtualMachineSession consuming the ctrl out queue?
+		//this.ctrl.setQueueAgentListener(this);
 		this.ctrl.start();
-		return "attach completed";
+		//TODO this is a bad hack for now, need to add a timeout here
+		while(!this.ctrl.isConnected()){
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+		}
+		this.connected = true;
+		return "successfully attached to " + host + ":" + port;
 	}
 
+	/**
+	 * Attach to the listening jdwp port for the given process (app) on the
+	 * emulator or localhost.
+	 * 
+	 * @param host
+	 *            The address of the target device
+	 * @param port
+	 *            The target listening jdwp port
+	 * @return Command result
+	 */
 	@Command(name = "attach", abbrev = "a", description = "Attach to JDWP process")
 	public String attach(
 			@Param(name = "port", description = "target virtual machine jdwp listening port (see 'adb jdwp' and use DDMS to discover port)") String port) {
@@ -213,11 +363,28 @@ public class CommandLine extends QueueAgent {
 			return "could not connect, already attached to VM";
 		}
 		this.ctrl = new Control(port, this.handlerPlugins);
-		this.setQueueAgentListener(ctrl);
+		//this is not working probably due to conflict with the VirtualMachineSession consuming the ctrl out queue?
+		//this.ctrl.setQueueAgentListener(this);
 		this.ctrl.start();
-		return "attach completed";
+		
+		//TODO this is a bad hack for now, need to add a timeout here
+		while(!this.ctrl.isConnected()){
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+		}
+		this.connected = true;
+		return "successfully attached to localhost:" + port;
 	}
 
+	/**
+	 * Detach from the debugged application.
+	 * 
+	 * @return
+	 */
 	@Command(name = "detach", abbrev = "d", description = "Detach from JDWP process")
 	public String detach() {
 		if (this.ctrl != null && this.ctrl.isConnected()) {
@@ -233,66 +400,124 @@ public class CommandLine extends QueueAgent {
 		}
 	}
 
+	/**
+	 * Load plugins (custom classes extending the AbstractJDIlPLugin class) from
+	 * the specified folder. Python plugins can simply be a .py file, Java
+	 * plugins should be compiled into a jarfile.
+	 * 
+	 * @param pluginsPath
+	 *            Path the folder which contains plugins to load.
+	 * @return
+	 */
 	@Command(name = "load-plugins", abbrev = "lp")
-	public String loadPlugins(String pluginsPath) {
+	public String loadPlugins(
+			@Param(name = "pluginsPath", description = "Path the folder which contains plugins (custom classes extending the AbstractJDIlPLugin class) to load.") String pluginsPath) {
 		LOGGER.info("attempting to load plugins from: " + pluginsPath);
-		StringBuilder sb = new StringBuilder("loadedPlugins:\n");
+		StringBuilder sb = new StringBuilder("attempting to load plugins from: " + pluginsPath + " .... \n");
+		if(!this.connected){
+			return "not attached, can't load plugins";
+		}
 		try {
-			this.pluginService = JDIPluginServiceFactory
+			this.pluginService = (JDIPluginService) JDIPluginServiceFactory
 					.createPluginService(pluginsPath);
-			this.jythonPluginService = JythonPluginServiceFactory
+			this.jythonPluginService = (JythonPluginService) JythonPluginServiceFactory
 					.createPluginService(pluginsPath);
 			this.vmHandlers = this.pluginService.getPlugins();
+			LOGGER.info(this.vmHandlers.hasNext());
 			this.jythonHandlers = this.jythonPluginService.getPlugins();
-
-			LOGGER.info("got plugins: ");
+		
+			sb.append("loaded Java plugins: \n");
 			while (this.vmHandlers.hasNext()) {
+				
 				JDIPlugin handler = this.vmHandlers.next();
 				this.handlerPlugins.add(handler);
-				LOGGER.info(handler.getName());
-				sb.append(handler.getName() + "\n");
+				String name = handler.getPluginName();
+				LOGGER.info("got java plugin: " + name);
+				sb.append(INDENT + name + "\n");
 			}
-
+			sb.append("loaded Jython plugins: \n");
 			while (this.jythonHandlers.hasNext()) {
 				JDIPlugin handler = this.jythonHandlers.next();
 				this.handlerPlugins.add(handler);
-				LOGGER.info(handler.getName());
-				sb.append(handler.getName() + "\n");
+				String name = handler.getPluginName();
+				LOGGER.info("got jython plugin: " + name);
+				sb.append(INDENT + name + "\n");
 			}
-
+		
+			this.ctrl.setHandlerPlugins(this.handlerPlugins);
+			
 		} catch (IOException e1) {
 			LOGGER.error("could not load plugins due to IO exception: " + e1);
+			sb.append("ERROR: could not load plugins due to IO exception");
 		}
 		return sb.toString();
 	}
 
-	@Command(name = "init-plugin", abbrev = "ip")
+	/**
+	 * Initialize a specific plugin from those available (see list-plugins).
+	 * 
+	 * @param pluginName
+	 * @return
+	 */
+	@Command(name = "init-plugin", abbrev = "ip", description = "Initialize a specific plugin from those available (see list-plugins).")
 	public String initializePlugin(
-			@Param(name = "plugin name", description = "name of plugin to load") String pluginName) {
-		if (this.ctrl != null && this.ctrl.isConnected()
-				&& this.pluginService != null) {
+			@Param(name = "plugin name", description = "name of plugin to initialize") String pluginName) {
+		StringBuilder sb = new StringBuilder("attempting to initalize plugin: " + pluginName + "\n");
+	LOGGER.debug("ctrl: " + this.ctrl + " , pluginName: " + pluginName);
 			try {
 				this.pluginService.initPlugin(this.ctrl.getVMEM(), pluginName);
 				this.jythonPluginService.initPlugin(this.ctrl.getVMEM(),
 						pluginName);
-				return "attempted to init plugin: " + pluginName;
+				LOGGER.info("attempted to init plugin: " + pluginName);
+				sb.append("plugin initialized: " + pluginName);
 			} catch (NoVMSessionException e) {
-
+				LOGGER.error("No virtual machine session");
+				sb.append("ERROR: no virtual machine session");
 			}
-		}
-		return "could not initialize plugin: " + pluginName
-				+ " no active virtual machine session";
+		return sb.toString();
 	}
 
-	@Command(name = "list-plugins", abbrev = "lsp")
+	/**
+	 * List the available loaded plugins.
+	 * 
+	 * @return
+	 */
+	@Command(name = "list-plugins", abbrev = "lsp", description = "List the available loaded plugins.")
 	public String listPlugins() {
-		StringBuilder plugins = new StringBuilder("plugins:\n");
+		StringBuilder plugins = new StringBuilder("loaded Java plugins:\n\n");
 		while (this.vmHandlers != null && this.vmHandlers.hasNext()) {
-			plugins.append(this.vmHandlers.next().getName() + "\n");
+			plugins.append(this.vmHandlers.next().getPluginName() + "\n");
+		}
+
+		plugins.append("\nloaded Jython plugins: \n\n");
+		while (this.jythonHandlers != null && this.jythonHandlers.hasNext()) {
+			plugins.append(this.jythonHandlers.next().getPluginName() + "\n");
 		}
 		return plugins.toString();
 	}
+	
+	@Command(name = "list-vm-events", abbrev = "events", description= "List all the currently set VM events (breakpoints, etc.)")
+	public String listVMEvents(){
+		StringBuilder sb = new StringBuilder();
+		sb.append("Currently set VirtualMachine events: \n");
+		if(this.ctrl.isConnected()){
+			try {
+				VirtualMachineEventManager vmem = this.ctrl.getVMEM();
+				for(EventRequest er : vmem.getVmEvents().keySet()){
+					JDIPlugin handler = vmem.getVmEvents().get(er);
+					sb.append(INDENT + er + " handler: " + handler.getClass().getName());
+				}
+			} catch (NoVMSessionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return sb.toString();
+	}
 
+	/**
+	 * Quit the debugging session.
+	 */
 	@Command(name = "quit", abbrev = "q")
 	public void quit() {
 		CommandLine.LOGGER.info("quit called");

@@ -31,7 +31,8 @@ public class ClasspathUtils {
 			for (int i = 0; i < files.length; i++) {
 				File file = files[i];
 				URI uri = file.toURI();
-				if (uri.getPath().endsWith(".prop")) {
+				String path = uri.getPath();
+				if (path.endsWith(".jar")) {
 					ClasspathUtils.addURL(file.toURI().toURL());
 				}
 			}

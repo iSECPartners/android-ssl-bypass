@@ -11,8 +11,8 @@ public class JythonPluginService extends AbstractPluginService {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(JythonPluginService.class.getName());
 
-	private static JythonPluginService pluginService;
-	private Iterator<JDIPlugin> plugins;
+	private static JythonPluginService pluginService = null;
+	private Iterator<JDIPlugin> plugins = null;
 
 	private JythonPluginService(File dir) {
 		super(dir);
@@ -32,7 +32,7 @@ public class JythonPluginService extends AbstractPluginService {
 		PythonInterpreter interpreter = new PythonInterpreter();
 		interpreter.execfile(pathToJythonModule);
 
-		int start = pathToJythonModule.lastIndexOf("\\") + 1;
+		int start = pathToJythonModule.lastIndexOf(File.separator) + 1;
 		int end = pathToJythonModule.lastIndexOf(".");
 		String tempName = pathToJythonModule.substring(start, end);
 		LOGGER.info("tempname: " + tempName);

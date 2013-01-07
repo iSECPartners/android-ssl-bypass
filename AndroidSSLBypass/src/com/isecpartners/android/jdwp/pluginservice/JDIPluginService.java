@@ -6,9 +6,14 @@ import java.util.ServiceLoader;
 
 import org.apache.log4j.Logger;
 
+import com.isecpartners.android.jdwp.Control;
+
 public class JDIPluginService extends AbstractPluginService {
-	private static JDIPluginService pluginService;
+	private final static org.apache.log4j.Logger LOGGER = Logger
+			.getLogger(JDIPluginService.class.getName());
+	private static JDIPluginService pluginService = null;
 	private ServiceLoader<JDIPlugin> serviceLoader;
+	//private Iterator<JDIPlugin> plugins;
 	
 	public static JDIPluginService getInstance(File dir) {
 		if (JDIPluginService.pluginService == null) {
@@ -20,6 +25,7 @@ public class JDIPluginService extends AbstractPluginService {
 	private JDIPluginService(File dir) {
 		super(dir);
 		this.serviceLoader = ServiceLoader.load(JDIPlugin.class);
+		LOGGER.debug("got serviceLoader: " + this.serviceLoader);
 	}
 
 	@Override

@@ -40,11 +40,11 @@ public class Control extends QueueAgent {
 	public void run() {
 		boolean done = false;
 		try {
+			
 			this.vmSession = new VirtualMachineSession(this.host, this.port,
 					this.vmHandlers);
-			//this.vmSession.setQueueAgentListener(this);
 			this.setQueueAgentListener(this.vmSession);
-
+			
 			Control.LOGGER.info("starting debugger session");
 			this.vmSession.start();
 
@@ -55,7 +55,7 @@ public class Control extends QueueAgent {
 					msg = this.getMessage();
 
 					switch (msg.getType()) {
-					case CONNECTED:
+					case SESSION_STARTED:
 						Control.LOGGER
 								.info("VM successfully connected, session starting ...");
 						this.connected  = true;
@@ -68,6 +68,12 @@ public class Control extends QueueAgent {
 						done = true;
 						break;
 
+					case OUTPUT:
+						LOGGER.info("got message: " + msg.getObject());
+						//TODO this might cause problems - not really thread safe right?
+						System.out.println(msg.getObject());
+						break;
+						
 					default:
 						Control.LOGGER.info("got message:"
 								+ msg.getType().name());
@@ -104,5 +110,9 @@ public class Control extends QueueAgent {
 			throw new NoVMSessionException();
 		}
 		return this.vmSession.getVMEventManager();
+	}
+
+	public void setHandlerPlugins(ArrayList<JDIPlugin> handlerPlugins) {
+		this.vmHandlers = handlerPlugins;
 	}
 }

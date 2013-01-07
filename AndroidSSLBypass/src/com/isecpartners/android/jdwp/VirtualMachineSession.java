@@ -44,12 +44,12 @@ public class VirtualMachineSession extends QueueAgent {
 
 	private DalvikUtils vmUtils = null;
 
-	public VirtualMachineSession(String host, String port, ArrayList<JDIPlugin> vmHandlers2)
+	public VirtualMachineSession(String host, String port, ArrayList<JDIPlugin> vmHandlers)
 			throws NoAttachingConnectorException {
 		this.setName("vm session");
 		this.host = host;
 		this.port = port;
-		this.vmHandlers = vmHandlers2;
+		this.vmHandlers = vmHandlers;
 	}
 
 	public void connect(String port) throws NoAttachingConnectorException,
@@ -99,10 +99,10 @@ public class VirtualMachineSession extends QueueAgent {
 
 	private void handleConnectionEvent(Object newValue) {
 		VirtualMachineSession.LOGGER
-				.debug("handleConnectionEvent: CONNECTED = " + newValue);
+				.debug("handleConnectionEvent: CONNECTED = " + (newValue != null ? newValue : "null"));
 		// this.vm = (VirtualMachine) newValue;
 		this.vm = this.dvmConnection.getVM();
-		VirtualMachineSession.LOGGER.info("got vm: " + this.vm);
+		VirtualMachineSession.LOGGER.info("got vm: " + (this.vm != null ? this.vm : "null"));
 		this.vmUtils = new DalvikUtils(this.vm, 0);
 		//this.vmUtils.suspendAllThreads();
 		//TODO hoping this helps with time ...
@@ -111,7 +111,7 @@ public class VirtualMachineSession extends QueueAgent {
 		this.vmem.start();
 		//this.vmUtils.resumeAllThreads();
 		try {
-			this.sendMessage(new Message(Message.Type.CONNECTED, "successfully connected"));
+			this.sendMessage(new Message(Message.Type.SESSION_STARTED, "successfully connected"));
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -132,6 +132,7 @@ public class VirtualMachineSession extends QueueAgent {
 				switch (msg.getType()) {
 
 				case CONNECT:
+					LOGGER.info("connecting to: " + this.port);
 					this.connect(this.port);
 					break;
 
@@ -139,7 +140,6 @@ public class VirtualMachineSession extends QueueAgent {
 					VirtualMachineSession.LOGGER
 							.info("vm successfully connected, session starting ...");
 					this.handleConnectionEvent(obj);
-					this.sendMessage(msg);
 					break;
 
 				case DISCONNECT:
@@ -151,6 +151,11 @@ public class VirtualMachineSession extends QueueAgent {
 					VirtualMachineSession.LOGGER.info("got disconnected event");
 					this.sendMessage(msg);
 					done = true;
+					break;
+					
+				case OUTPUT:
+					LOGGER.info(msg.getObject());
+					this.sendMessage(msg);
 					break;
 					
 				case STOP:

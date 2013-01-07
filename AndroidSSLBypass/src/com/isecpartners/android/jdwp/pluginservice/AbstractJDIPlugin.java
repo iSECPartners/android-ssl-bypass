@@ -12,6 +12,8 @@ import org.apache.log4j.Logger;
 import com.isecpartners.android.jdwp.LocationNotFoundException;
 import com.isecpartners.android.jdwp.ReferenceTypeNotFoundException;
 import com.isecpartners.android.jdwp.VirtualMachineEventManager;
+import com.isecpartners.android.jdwp.common.Message;
+import com.isecpartners.android.jdwp.common.QueueAgent;
 import com.sun.jdi.ThreadReference;
 import com.sun.jdi.event.Event;
 import com.sun.jdi.request.BreakpointRequest;
@@ -21,8 +23,7 @@ import com.sun.jdi.request.MethodEntryRequest;
 import com.sun.jdi.request.MethodExitRequest;
 import com.sun.jdi.request.StepRequest;
 
-public abstract class AbstractJDIPlugin implements JDIPlugin {
-	@SuppressWarnings("unused")
+public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(AbstractJDIPlugin.class.getName());
 
@@ -48,6 +49,12 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 
 	public void output(String message){
 		LOGGER.info(message);
+		try {
+			this.sendMessage(new Message(Message.Type.OUTPUT,message));
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void createBreakpointRequest(String locationString)
@@ -90,7 +97,7 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 	}
 
 	@Override
-	public String getName() {
+	public String getPluginName() {
 		return this.name;
 	}
 
@@ -103,7 +110,7 @@ public abstract class AbstractJDIPlugin implements JDIPlugin {
 			IOException {
 		this.vmem = vmem;
 		this.basePath = path;
-		this.propsPath = path + File.separator + this.getName() + ".prop";
+		this.propsPath = path + File.separator + this.getPluginName() + ".prop";
 		this.propsFile = new File(this.propsPath);
 		if(this.propsFile.isFile()){
 			this.properties.load(new FileInputStream(this.propsPath));

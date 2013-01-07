@@ -5,7 +5,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
-public abstract class QueueAgent extends Thread {
+public abstract class QueueAgent extends Thread implements QueueAgentInterface{
 
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(QueueAgent.class.getName());
@@ -19,7 +19,7 @@ public abstract class QueueAgent extends Thread {
 		this.messageOUT = new LinkedBlockingQueue<Message>();
 	}
 
-	public void setQueueAgentListener(QueueAgent qap) {
+	public void setQueueAgentListener(QueueAgentInterface qap) {
 		qap.setMessageIN(this.messageOUT);
 		qap.setMessageOUT(this.messageIN);
 	}

@@ -29,6 +29,8 @@ public class VirtualMachineEventManager extends QueueAgent {
 
 	private VirtualMachine vm;
 	private HashMap<EventRequest, JDIPlugin> vmEvents;
+	
+	
 	private DalvikUtils vmUtils;
 
 	public VirtualMachineEventManager(VirtualMachine vm) {
@@ -36,6 +38,15 @@ public class VirtualMachineEventManager extends QueueAgent {
 		this.vmUtils = new DalvikUtils(vm,0);
 		this.vmEvents = new HashMap<EventRequest, JDIPlugin>();
 	}
+	
+	public HashMap<EventRequest, JDIPlugin> getVmEvents() {
+		return vmEvents;
+	}
+
+	public void setVmEvents(HashMap<EventRequest, JDIPlugin> vmEvents) {
+		this.vmEvents = vmEvents;
+	}
+
 
 	// TODO test what happens when two things try to create the same bp
 	public BreakpointRequest createBreakpointRequest(String locationString,

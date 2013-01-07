@@ -14,8 +14,14 @@ import com.isecpartners.android.jdwp.VirtualMachineEventManager;
 public abstract class AbstractPluginService implements PluginService {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(AbstractPluginService.class.getName());
-	protected File pluginsDir = new File(".");
+	protected File pluginsDir = new File("plugins");
 
+	protected AbstractPluginService() {
+		if(!pluginsDir.exists()){
+			throw new IllegalArgumentException();
+		}
+	}
+	
 	protected AbstractPluginService(File dir) {
 		if (!dir.exists()) {
 			throw new IllegalArgumentException();
@@ -33,7 +39,8 @@ public abstract class AbstractPluginService implements PluginService {
 		}
 		while (iterator.hasNext()) {
 			JDIPlugin plugin = iterator.next();
-			LOGGER.info("initializing the plugin " + plugin.getName());
+			LOGGER.info("initializing the plugin " + plugin.getPluginName());
+			vmem.setQueueAgentListener(plugin);
 			try {
 				plugin.init(vmem, this.pluginsDir.getAbsolutePath());
 			} catch (LocationNotFoundException e) {
@@ -55,10 +62,12 @@ public abstract class AbstractPluginService implements PluginService {
 		}
 		while (iterator.hasNext()) {
 			JDIPlugin plugin = iterator.next();
-			if (plugin.getName().equals(pluginName)) {
-				LOGGER.info(plugin.getName());
-				LOGGER.info("initializing the plugin " + plugin.getName());
+			if (plugin.getPluginName().equals(pluginName)) {
+				LOGGER.info(plugin.getPluginName());
+				LOGGER.info("initializing the plugin " + plugin.getPluginName());
+				
 				try {
+					vmem.setQueueAgentListener(plugin);
 					plugin.init(vmem, this.pluginsDir.getAbsolutePath());
 				} catch (LocationNotFoundException e) {
 					LOGGER.error("could not find location referenced by plugin: "
