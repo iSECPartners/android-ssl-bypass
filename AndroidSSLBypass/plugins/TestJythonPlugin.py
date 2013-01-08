@@ -27,6 +27,14 @@ class TestJythonPlugin(AbstractJDIPlugin):
 	dalvikUtils = DalvikUtils(vm,thread)
 	args = method.variables()
 
-	
-	self.output("event: %s, args: %s" % ( event.toString(), args.toString()))
+	self.output("="*20)	
+	self.output("EVENT: \n\t%s\n" % ( event.toString()))
+	vals = []
+	self.output("VARIABLES:\n")
+	for arg in args:
+		val = fr0.getValue(arg)
+		self.output("\t%s = %s\n" % (arg,val))
+		vals.append(val)
+
+	self.output("="*20)
         self.resumeEventSet()
