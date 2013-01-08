@@ -100,11 +100,6 @@ Basic Usage
     * Load plugins:
 
         ads>> lp plugins
-<<<<<<< HEAD
-=======
-
-        ads>> lp plugins
->>>>>>> 908422d6d072163b32980afe8d7c28d3202db29b
 	attempting to load plugins from: plugins .... 
 	loaded Java plugins: 
 		com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
@@ -115,14 +110,7 @@ Basic Usage
 		TestJythonPlugin
 
     * Initialize plugin:
-<<<<<<< HEAD
-    
     	ads>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
-	
-=======
-
-        ads>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
->>>>>>> 908422d6d072163b32980afe8d7c28d3202db29b
 	ads>> ip TestJythonPlugin
 
 
