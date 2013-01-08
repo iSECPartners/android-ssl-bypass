@@ -58,19 +58,19 @@ Basic Usage
 
     * List devices:
 
-        ASB>> ld
+        ads>> ld
         Devices:
                         emulator-5554 : droid16 [emulator-5554]
 
     * Select a device:
 
-        ASB>> sd emulator-5554
+        ads>> sd emulator-5554
         Selected Device:
                         emulator-5554
 
     * List clients:
 
-        ASB>> lsc
+        ads>> apps
         Clients on: emulator-5554
                         com.google.process.gapps : 8600
                         com.android.systemui : 8601
@@ -95,27 +95,31 @@ Basic Usage
 
     * Attach to client:
         
-        ASB>> a 8616
+        ads>> a 8616
 
     * Load plugins:
 
-        ASB>> lp plugins
+        ads>> lp plugins
 
-        loadedPlugins:
-            com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
-            com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
-            com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
-            com.isecpartners.android.jdwp.plugin.TestJDIPlugin
-            TestJythonPlugin
+        ads>> lp plugins
+	attempting to load plugins from: plugins .... 
+	loaded Java plugins: 
+		com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+		com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
+		com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
+		com.isecpartners.android.jdwp.plugin.TestJDIPlugin
+	loaded Jython plugins: 
+		TestJythonPlugin
 
     * Initialize plugin:
 
-        ASB>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+        ads>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+	ads>> ip TestJythonPlugin
 
 
 After the plugin has been successfully initialized, do the action in the app that causes an SSL connection to be made. Breakpoints should be hit and handled via the initialized plugins.
 
-
+The TestJythonPlugin is a good example of how to write a custom plugin using Jython
 SSLBypassJDIPlugin, AndroidSSLBypassHelperApp, SSLTestApp, twistedsslserver.py
 ==================
 
