@@ -58,64 +58,67 @@ Basic Usage
 
     * List devices:
 
-        ASB>> ld
+        ads>> ld
         Devices:
-                        emulator-5554 : droid16 [emulator-5554]
+        	emulator-5554 : droid16 [emulator-5554]
 
     * Select a device:
 
-        ASB>> sd emulator-5554
+        ads>> sd emulator-5554
         Selected Device:
-                        emulator-5554
+        	emulator-5554
 
     * List clients:
 
-        ASB>> lsc
+        ads>> apps
         Clients on: emulator-5554
-                        com.google.process.gapps : 8600
-                        com.android.systemui : 8601
-                        com.android.email : 8602
-                        com.android.calendar : 8603
-                        com.google.android.apps.maps:LocationFriendService : 8604
-                        com.android.providers.calendar : 8605
-                        com.google.android.apps.maps : 8606
-                        com.android.contacts : 8607
-                        com.android.exchange : 8608
-                        com.google.android.apps.maps:FriendService : 8609
-                        com.android.deskclock : 8610
-                        com.android.launcher : 8611
-                        com.android.inputmethod.latin : 8612
-                        com.android.phone : 8613
-                        com.android.mms : 8614
-                        android.process.media : 8615
-                        com.isec.ssltest : 8616
-                        com.android.settings : 8617
-                        system_process : 8618
-                        android.process.acore : 8619
+        	com.google.process.gapps : 8600
+                com.android.systemui : 8601
+                com.android.email : 8602
+                com.android.calendar : 8603
+                com.google.android.apps.maps:LocationFriendService : 8604
+                com.android.providers.calendar : 8605
+                com.google.android.apps.maps : 8606
+                com.android.contacts : 8607
+                com.android.exchange : 8608
+                com.google.android.apps.maps:FriendService : 8609
+                com.android.deskclock : 8610
+                com.android.launcher : 8611
+                com.android.inputmethod.latin : 8612
+                com.android.phone : 8613
+                com.android.mms : 8614
+                android.process.media : 8615
+                com.isec.ssltest : 8616
+                com.android.settings : 8617
+                system_process : 8618
+                android.process.acore : 8619
 
     * Attach to client:
         
-        ASB>> a 8616
+        ads>> a 8616
 
     * Load plugins:
 
-        ASB>> lp plugins
-
-        loadedPlugins:
-            com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
-            com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
-            com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
-            com.isecpartners.android.jdwp.plugin.TestJDIPlugin
-            TestJythonPlugin
+        ads>> lp plugins
+	attempting to load plugins from: plugins .... 
+	loaded Java plugins: 
+		com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+		com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
+		com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
+		com.isecpartners.android.jdwp.plugin.TestJDIPlugin
+	loaded Jython plugins: 
+		TestJythonPlugin
 
     * Initialize plugin:
-
-        ASB>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+    
+    	ads>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+	
+	ads>> ip TestJythonPlugin
 
 
 After the plugin has been successfully initialized, do the action in the app that causes an SSL connection to be made. Breakpoints should be hit and handled via the initialized plugins.
 
-
+The TestJythonPlugin is a good example of how to write a custom plugin using Jython
 SSLBypassJDIPlugin, AndroidSSLBypassHelperApp, SSLTestApp, twistedsslserver.py
 ==================
 
