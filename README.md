@@ -56,6 +56,8 @@ Basic Usage
 
         Type ?list for a list of commands
 
+    * ADB location can also be set in the defaults.prop file in the root dir
+
     * List devices:
 
         ads>> ld
@@ -100,18 +102,19 @@ Basic Usage
     * Load plugins:
 
         ads>> lp plugins
-	attempting to load plugins from: plugins .... 
-	loaded Java plugins: 
-		com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
-		com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
-		com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
-		com.isecpartners.android.jdwp.plugin.TestJDIPlugin
-	loaded Jython plugins: 
-		TestJythonPlugin
+            attempting to load plugins from: plugins .... 
+            loaded Java plugins: 
+                com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+                com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
+                com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
+                com.isecpartners.android.jdwp.plugin.TestJDIPlugin
+            loaded Jython plugins: 
+                TestJythonPlugin
 
     * Initialize plugin:
-    	ads>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
-	ads>> ip TestJythonPlugin
+    	
+        ads>> ip com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+        ads>> ip TestJythonPlugin
 
 
 After the plugin has been successfully initialized, do the action in the app that causes an SSL connection to be made. Breakpoints should be hit and handled via the initialized plugins.
@@ -143,37 +146,177 @@ without closing the app.
 Building
 ==================
 
-* Modify the properties in build.properties corresponding to locations of ddmlib and tools.jar on your filesystem
+* Modify the properties in build.properties corresponding to locations of ddmlib 
 
     * ddmlib is found in the Android SDK at: android-sdk\tools\lib\ddmlib.jar
 
-    * tools.jar is found in the JDK libs, for example: C:/Program Files (x86)/Java/jdk1.7.0_05/lib/tools.jar
+* Ensure that tools.jar can be found by setting JAVA_HOME to point to the JDK root directory
+
+    * tools.jar is found in the JDK lib dir, for example: C:/Program Files (x86)/Java/jdk1.7.0_05/lib/tools.jar
 
 * Run the ant build file: build.xml
 
 Testing
 ===================
 
-    * Run tests using the emulator
+* Run tests using the emulator
 
-    * Install AndroidSSLBypassHelperApp
+* Install AndroidSSLBypassHelperApp
 
-    * Install SSLTestApp
+* Install SSLTestApp
 
-    * Setup proxy
+* Setup proxy
 
-    * Right now SSLTestApp points to the host as seen from the emulator (10.0.2.2)
+* Right now SSLTestApp points to the host as seen from the emulator (10.0.2.2)
 
-        * This is hardcoded for now, a better test app will be included in the future
-        
-    * Follow the basic usage instructions for running SSLBypassJDIPlugin
+    * This is hardcoded for now, a better test app will be included in the future
+    
+* Follow the basic usage instructions for running SSLBypassJDIPlugin
 
-Writing new plugins
-===================
 
-*TODO
+Custom Jython Plugin Overview
+=====================
 
-FAQ
+This tool is rather poorly named "android-ssl-bypass" in that bypassing SSL is far from all it does. It was initally presented at conference where bypassing ssl was its main purpose. However, it was created to be an extensible debugging tool that can be used for a variety of debugging tasks. It might be more aptly named something like "android-debug-shell", and probably will be changed to that at some point. This aims to provide a basic guide for creating your own simple debugging plugins for the tool using Jython. The plugins can be written in Java as well, but Jython is the easiest method for extensibility.
+
+The power of Jython is that it lets us easily use and Java classes in the classpath. So we can import the Java Class AbstractJDIPlugin and create a Python class which extends it in order to create a plugin that can be loaded by the tool. In the future when the APIs are more solid there will be real documentation, but for now there is only source code :). Some jargon:
+
+* Event (http://docs.oracle.com/javase/1.5.0/docs/guide/jpda/jdi/com/sun/jdi/event/Event.html)
+    
+    * Interface which represents an event request to the virtual machine. An event can be one of the following:
+    AccessWatchpointEvent, BreakpointEvent, ClassPrepareEvent, ClassUnloadEvent, ExceptionEvent, LocatableEvent, MethodEntryEvent, MethodExitEvent, ModificationWatchpointEvent, StepEvent, ThreadDeathEvent, ThreadStartEvent, VMDeathEvent, VMDisconnectEvent, VMStartEvent, WatchpointEvent
+
+* EventRequest (http://docs.oracle.com/javase/1.5.0/docs/guide/jpda/jdi/com/sun/jdi/request/EventRequest.html)
+
+    * Respresents a request for notification for an event
+
+
+So first we import some Java classes from the tool that we will need to use:
+
+    from com.isecpartners.android.jdwp.pluginservice import AbstractJDIPlugin
+    from com.isecpartners.android.jdwp import DalvikUtils
+    import com.sun.jdi.event.Event
+
+We can now create a class which extends the AbstractJDIPlugin using the following:
+
+    class TestJythonPlugin(AbstractJDIPlugin):
+
+        def __init__(self):
+            AbstractJDIPlugin.__init__(self,"TestJythonPlugin")
+            self.output("Python: initalized TestJythonPlugin")
+
+A plugin must implement the abstract methods setupEvents() and handleEvent(Event). In the setupEvents method, the plugins creates and registers EventRequest objects using the convience methods provided by the Abstract JDIPlugin API, such as createBreakpointRequest(String locationString). 
+
+    def setupEvents(self):
+        self.output("Python: setupEvents")
+        self.createBreakpointRequest("android.util.Log.i")
+        self.createBreakpointRequest("android.util.Log.d")
+        self.createBreakpointRequest("android.util.Log.v")
+        self.createBreakpointRequest("android.util.Log.e")
+        self.createBreakpointRequest("android.util.Log.w")
+
+Now in the handleEvents(Event e) method we handle the events we just registered for. The tool works in a last in wins manner as far as two plugins trying to register for the same event (overall this feature is still in heavy dev so prepare for some bugs here when trying to load multiple plugins at once). Now we can do stuff with the Event object which is received by the function. In this case we know we are dealing with a BreakpointEvent (http://docs.oracle.com/javase/1.5.0/docs/guide/jpda/jdi/com/sun/jdi/event/BreakpointEvent.html) because that is all we registered. We can use the methods of the event to extract the current thread, frame, location, and method. From that we can obtain the local variables and much more.
+
+    def handleEvent(self, event):
+        vm = event.virtualMachine();
+        thread = event.thread()
+        fr0 = thread.frames()[0]
+        location = fr0.location()
+        method = location.method()
+        name = method.name() 
+        dalvikUtils = DalvikUtils(vm,thread)
+        args = method.variables()
+
+        self.output("="*20) 
+        self.output("EVENT: \n\t%s\n" % ( event.toString()))
+        vals = []
+        self.output("VARIABLES:\n")
+        for arg in args:
+            val = fr0.getValue(arg)
+            self.output("\t%s = %s\n" % (arg,val))
+            vals.append(val)
+
+        self.output("="*20)
+
+Then we can choose to resume the event set which causes all threads to resume and the application continues execution.
+
+        self.resumeEventSet()   
+
+The plugin can then be used by attaching to the process, loading the plugins from the directory in which the Jython plugin is located, and initalizing the plugin. The following is an example debugging session from the example plugin in plugins/TestJythonPlugin:
+
+        ====================
+         Welcome to ANDROID DEBUG SHELL
+        Type ?list for list of commands
+        ====================
+
+        ads>> ld
+        Devices:
+                emulator-5554 : nexus7 [emulator-5554]
+
+        ads>> sd emulator-5554
+        Selected Device:
+                emulator-5554
+        ads>> apps
+        Clients on: emulator-5554
+                com.android.quicksearchbox : 8600
+                com.android.browser : 8601
+                com.android.exchange : 8602
+                com.android.mms : 8603
+                com.android.deskclock : 8604
+                com.android.providers.calendar : 8605
+                com.android.calendar : 8606
+                com.android.contacts : 8607
+                system_process : 8608
+                com.android.email : 8609
+                android.process.acore : 8610
+                com.android.phone : 8611
+                com.android.systemui : 8612
+                com.android.launcher : 8613
+                com.android.settings : 8614
+                com.android.inputmethod.latin : 8615
+                android.process.media : 8616
+
+        ads>> a 8601
+        successfully attached to localhost:8601
+        ads>> lp plugins
+        attempting to load plugins from: plugins ....
+        loaded Java plugins:
+                com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin
+                com.isecpartners.android.jdwp.plugin.JythonConsoleJDIPlugin
+                com.isecpartners.android.jdwp.plugin.TraceMethodsJDIPlugin
+                com.isecpartners.android.jdwp.plugin.TestJDIPlugin
+        loaded Jython plugins:
+                TestJythonPlugin
+
+        ads>> ip TestJythonPlugin
+        Python: setupEvents
+        attempting to initalize plugin: TestJythonPlugin
+        plugin initialized: TestJythonPlugin
+        ads>> ====================
+        EVENT:
+                BreakpointEvent@android.util.Log:159 in thread <1> main
+
+        VARIABLES:
+
+                tag in android.util.Log.i(java.lang.String, java.lang.String)@android.util.Log:159 = "Choreographer"
+
+                msg in android.util.Log.i(java.lang.String, java.lang.String)@android.util.Log:159 = "Skipped 103 frames!  The application may
+        be doing too much work on its main thread."
+
+        ====================
+        ====================
+        EVENT:
+                BreakpointEvent@android.util.Log:159 in thread <1> main
+
+        VARIABLES:
+
+                tag in android.util.Log.i(java.lang.String, java.lang.String)@android.util.Log:159 = "Choreographer"
+
+                msg in android.util.Log.i(java.lang.String, java.lang.String)@android.util.Log:159 = "Skipped 110 frames!  The application may
+        be doing too much work on its main thread."
+
+
+        FAQ
 ==================
 
 Q: Why is it so slow the first time I run the plugin?
