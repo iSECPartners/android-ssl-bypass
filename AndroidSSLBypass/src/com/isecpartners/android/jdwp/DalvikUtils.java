@@ -5,14 +5,11 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.BooleanValue;
 import com.sun.jdi.ByteValue;
 import com.sun.jdi.CharValue;
-import com.sun.jdi.ClassLoaderReference;
 import com.sun.jdi.ClassNotLoadedException;
-import com.sun.jdi.ClassObjectReference;
 import com.sun.jdi.ClassType;
 import com.sun.jdi.DoubleValue;
 import com.sun.jdi.Field;
@@ -25,7 +22,6 @@ import com.sun.jdi.LocalVariable;
 import com.sun.jdi.Location;
 import com.sun.jdi.LongValue;
 import com.sun.jdi.Method;
-import com.sun.jdi.ObjectReference;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.ShortValue;
 import com.sun.jdi.StackFrame;

@@ -5,8 +5,6 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
-import com.isecpartners.android.jdwp.Control;
-
 public class JDIPluginServiceFactory {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(JDIPluginServiceFactory.class.getName());

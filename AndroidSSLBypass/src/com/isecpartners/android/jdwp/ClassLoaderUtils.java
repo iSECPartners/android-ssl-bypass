@@ -203,7 +203,6 @@ public class ClassLoaderUtils {
 			ClassWrapper loader) throws InvalidTypeException,
 			ClassNotLoadedException, IncompatibleThreadStateException,
 			InvocationException, NoLoadClassMethodException {
-		ReferenceType refType = null;
 		try {
 			ObjectReference newInst = loader.newInstance();
 			StringReference clsName = this.vmUtils.createString(className);

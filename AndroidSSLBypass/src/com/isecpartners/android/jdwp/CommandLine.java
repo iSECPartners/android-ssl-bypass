@@ -29,14 +29,11 @@ import com.android.ddmlib.Client;
 import com.android.ddmlib.IDevice;
 import com.isecpartners.android.jdwp.common.Message;
 import com.isecpartners.android.jdwp.common.QueueAgent;
-import com.isecpartners.android.jdwp.connection.NoAttachingConnectorException;
-import com.isecpartners.android.jdwp.pluginservice.AbstractJDIPlugin;
 import com.isecpartners.android.jdwp.pluginservice.JDIPlugin;
 import com.isecpartners.android.jdwp.pluginservice.JDIPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JDIPluginServiceFactory;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginServiceFactory;
-import com.isecpartners.android.jdwp.pluginservice.PluginService;
 import com.sun.jdi.request.EventRequest;
 
 public class CommandLine extends QueueAgent {
@@ -155,7 +152,8 @@ public class CommandLine extends QueueAgent {
 			System.out.println("Starting debugger with ADB location: "
 					+ adbLocation + ".....\n");
 			try {
-				this.adb = new ADBInterface(adbLocation);
+				this.adb = ADBInterface.getInstance();
+				this.adb.createBridge(adbLocation);
 			} catch (Exception e) {
 				LOGGER.error("caught exception trying to start ADB interface: "
 						+ e);
@@ -221,7 +219,8 @@ public class CommandLine extends QueueAgent {
 		if (adb.isFile()) {
 			this.adbLocation = pathToADB;
 			try {
-				this.adb = new ADBInterface(adbLocation);
+				this.adb = ADBInterface.getInstance();
+				this.adb.createBridge(adbLocation);
 				res.append("success setting ADB location to: "
 						+ this.adbLocation);
 			} catch (Exception e) {
@@ -515,10 +514,10 @@ public class CommandLine extends QueueAgent {
 		return sb.toString();
 	}
 
-	/**
-	 * Quit the debugging session.
+	/*
+	 * Quit the debugging session
 	 */
-	@Command(name = "quit", abbrev = "q")
+	@Command(name = "quit", abbrev = "q", description = "quit the debugging session")
 	public void quit() {
 		CommandLine.LOGGER.info("quit called");
 		System.exit(0);

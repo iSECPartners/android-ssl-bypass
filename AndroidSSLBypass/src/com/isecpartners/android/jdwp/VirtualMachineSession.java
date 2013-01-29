@@ -2,7 +2,6 @@ package com.isecpartners.android.jdwp;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -13,7 +12,6 @@ import com.isecpartners.android.jdwp.connection.AbstractConnection;
 import com.isecpartners.android.jdwp.connection.DefaultConnectionFactory;
 import com.isecpartners.android.jdwp.connection.NoAttachingConnectorException;
 import com.isecpartners.android.jdwp.pluginservice.JDIPlugin;
-import com.sun.jdi.ClassType;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.ThreadReference;
 import com.sun.jdi.VMDisconnectedException;
@@ -24,8 +22,6 @@ import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.EventRequestManager;
 
 public class VirtualMachineSession extends QueueAgent {
-	private static final String DEFAULT_HOST = "localhost";
-
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(VirtualMachineSession.class.getName());
 	private DefaultConnectionFactory defaultConnectionFactory = new DefaultConnectionFactory();
@@ -56,11 +52,10 @@ public class VirtualMachineSession extends QueueAgent {
 			VMDisconnectedException, IllegalConnectorArgumentsException,
 			IOException, VMStartException {
 		VirtualMachineSession.LOGGER
-				.info("VirtualMachineSession connect called");
+				.debug("VirtualMachineSession connect called");
 
 		this.dvmConnection = this.defaultConnectionFactory.createSocket(
 				this.host, port);
-		// this.dvmConnection.addPropertyChangeListener(this);
 		this.setQueueAgentListener(this.dvmConnection);
 		this.dvmConnection.connect();
 	}
@@ -96,13 +91,14 @@ public class VirtualMachineSession extends QueueAgent {
 	public DalvikUtils getVMUtils() {
 		return this.vmUtils;
 	}
-
+	
+	
 	private void handleConnectionEvent(Object newValue) {
 		VirtualMachineSession.LOGGER
 				.debug("handleConnectionEvent: CONNECTED = " + (newValue != null ? newValue : "null"));
 		// this.vm = (VirtualMachine) newValue;
 		this.vm = this.dvmConnection.getVM();
-		VirtualMachineSession.LOGGER.info("got vm: " + (this.vm != null ? this.vm : "null"));
+		VirtualMachineSession.LOGGER.info("connected to vm: " + (this.vm != null ? this.vm : "null"));
 		this.vmUtils = new DalvikUtils(this.vm, 0);
 		//this.vmUtils.suspendAllThreads();
 		//TODO hoping this helps with time ...
@@ -171,27 +167,27 @@ public class VirtualMachineSession extends QueueAgent {
 
 		} catch (NoAttachingConnectorException e) {
 			VirtualMachineSession.LOGGER
-					.info("NoAttachingConnectorException: exiting");
+					.error("NoAttachingConnectorException: exiting");
 
 		} catch (VMDisconnectedException e) {
-			VirtualMachineSession.LOGGER.info("VMDisconnectedException: "
+			VirtualMachineSession.LOGGER.error("VMDisconnectedException: "
 					+ e.getMessage() + " - exiting");
 
 		} catch (IllegalConnectorArgumentsException e) {
 			VirtualMachineSession.LOGGER
-					.info("IllegalConnectorArgumentsException: "
+					.error("IllegalConnectorArgumentsException: "
 							+ e.getMessage() + " - exiting");
 
 		} catch (IOException e) {
-			VirtualMachineSession.LOGGER.info("IOException: " + e.getMessage()
+			VirtualMachineSession.LOGGER.error("IOException: " + e.getMessage()
 					+ " - exiting");
 
 		} catch (VMStartException e) {
-			VirtualMachineSession.LOGGER.info("VMStartException: "
+			VirtualMachineSession.LOGGER.error("VMStartException: "
 					+ e.getMessage() + " - exiting");
 
 		} catch (InterruptedException e) {
-			VirtualMachineSession.LOGGER.info("InterruptedException: "
+			VirtualMachineSession.LOGGER.error("InterruptedException: "
 					+ e.getMessage() + " - exiting");
 		}
 	}

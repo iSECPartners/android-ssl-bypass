@@ -1,7 +1,6 @@
 package com.isecpartners.android.jdwp;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 

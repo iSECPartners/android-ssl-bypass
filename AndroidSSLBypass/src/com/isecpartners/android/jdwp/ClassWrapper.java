@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.isecpartners.android.jdwp.plugin.SSLBypassJDIPlugin;
 import com.sun.jdi.ClassNotLoadedException;
 import com.sun.jdi.ClassObjectReference;
 import com.sun.jdi.ClassType;
@@ -17,11 +16,10 @@ import com.sun.jdi.Method;
 import com.sun.jdi.ObjectReference;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.ThreadReference;
-import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 
 public class ClassWrapper {
-	private final static org.apache.log4j.Logger LOGGER = Logger
+	private final static Logger LOGGER = Logger
 			.getLogger(ClassWrapper.class.getName());
 	private ClassObjectReference cor;
 	private ReferenceType reflectedType;
@@ -87,6 +85,9 @@ public class ClassWrapper {
 		this.referenceType = referenceType;
 	}
 
+	/*
+	 * Create a new instance of a class using the debugger
+	 */
 	public ObjectReference newInstance() {
 		try {
 			Method newInst = this.referenceType.methodsByName("newInstance")
@@ -94,7 +95,7 @@ public class ClassWrapper {
 			// ClassType classType = (ClassType)this.referenceType;
 			// LOGGER.info("got classtype: " + classType.name());
 			ClassType classType = (ClassType) this.reflectedType;
-			LOGGER.info("got classtype: " + classType.name());
+			ClassWrapper.LOGGER.info("got classtype: " + classType.name());
 			return (ObjectReference) this.cor.invokeMethod(this.thread,
 					newInst, Constants.NOARGS, 1);
 		} catch (java.lang.IllegalArgumentException e) {

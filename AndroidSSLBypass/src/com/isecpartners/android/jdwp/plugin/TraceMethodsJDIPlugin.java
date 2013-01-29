@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 
 import com.isecpartners.android.jdwp.LocationNotFoundException;
 import com.isecpartners.android.jdwp.ReferenceTypeNotFoundException;
-import com.isecpartners.android.jdwp.common.QueueAgentInterface;
 import com.isecpartners.android.jdwp.pluginservice.AbstractJDIPlugin;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.IncompatibleThreadStateException;

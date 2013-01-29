@@ -6,8 +6,6 @@ import java.util.ServiceLoader;
 
 import org.apache.log4j.Logger;
 
-import com.isecpartners.android.jdwp.Control;
-
 public class JDIPluginService extends AbstractPluginService {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(JDIPluginService.class.getName());

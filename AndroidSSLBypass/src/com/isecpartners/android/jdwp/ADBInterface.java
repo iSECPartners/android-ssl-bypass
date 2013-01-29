@@ -15,24 +15,36 @@ public class ADBInterface implements IDeviceChangeListener, IClientChangeListene
 	private IDevice[] devices;
 	private IDevice currentDevice;
 	private Client[] clients;
+	private static ADBInterface sAdbInterface;
 	
-	public ADBInterface(String adbLocation){
+	public ADBInterface(){
 		AndroidDebugBridge.init(true);
+	}
+	
+	public static ADBInterface getInstance(){
+		if(ADBInterface.sAdbInterface != null){
+			return ADBInterface.sAdbInterface;
+		}
+		ADBInterface.sAdbInterface = new ADBInterface();
+		return ADBInterface.sAdbInterface;
+	}
+	
+	public void createBridge(String adbLocation){
 		AndroidDebugBridge.createBridge(adbLocation, true);
-		AndroidDebugBridge.addDebugBridgeChangeListener(this);
-		this.startDeviceListener();
+		startDeviceListener();
+		AndroidDebugBridge.addDebugBridgeChangeListener(sAdbInterface);
 	}
 	
 	public IDevice[] getDevices(){
-		this.devices = AndroidDebugBridge.getBridge().getDevices();
-		return this.devices;
+		devices = AndroidDebugBridge.getBridge().getDevices();
+		return devices;
 	}
 	
 	public Client[] getClients(){
-		if(this.currentDevice != null){
-			this.clients = this.currentDevice.getClients();
+		if(currentDevice != null){
+			clients = currentDevice.getClients();
 		}
-		return this.clients;
+		return clients;
 	}
 
 	@Override
@@ -43,13 +55,13 @@ public class ADBInterface implements IDeviceChangeListener, IClientChangeListene
 	@Override
 	public void deviceChanged(IDevice arg0, int arg1) {
 		LOGGER.info("deviceChanged: " + arg0);
-		this.devices = AndroidDebugBridge.getBridge().getDevices();
+		devices = AndroidDebugBridge.getBridge().getDevices();
 	}
 
 	@Override
 	public void deviceConnected(IDevice arg0) {
 		LOGGER.info("deviceConnected: " + arg0);
-		this.devices = AndroidDebugBridge.getBridge().getDevices();
+		devices = AndroidDebugBridge.getBridge().getDevices();
 	}
 
 	@Override
@@ -60,34 +72,35 @@ public class ADBInterface implements IDeviceChangeListener, IClientChangeListene
 	public void setCurrentDevice(IDevice d) {
 		for(IDevice dev: this.getDevices()){
 			if(d.getName().equals(dev.getName())){
-				this.currentDevice = dev;
-				this.startClientListener();
+				currentDevice = dev;
+				startClientListener();
 				break;
 			}
 		}
 	}
 
 	public IDevice getCurrentDevice() {
-		return this.currentDevice;
+		return currentDevice;
 	}
 
 	@Override
 	public void bridgeChanged(AndroidDebugBridge arg0) {
 		LOGGER.info("bridgeChanged: " + arg0);
+		//TODO what should happn here?
 		
 	}
 	
 	private void startDeviceListener() {
-		AndroidDebugBridge.addDeviceChangeListener(this);
+		AndroidDebugBridge.addDeviceChangeListener(sAdbInterface);
 		if (AndroidDebugBridge.getBridge().hasInitialDeviceList()) {
-			this.devices = AndroidDebugBridge.getBridge().getDevices();
+			devices = AndroidDebugBridge.getBridge().getDevices();
 		}
 	}
 
 	private void startClientListener() {
-		AndroidDebugBridge.addClientChangeListener(this);
-		if (this.currentDevice != null) {
-			this.clients = this.currentDevice.getClients();
+		AndroidDebugBridge.addClientChangeListener(sAdbInterface);
+		if (currentDevice != null) {
+			clients = currentDevice.getClients();
 		}
 
 	}
