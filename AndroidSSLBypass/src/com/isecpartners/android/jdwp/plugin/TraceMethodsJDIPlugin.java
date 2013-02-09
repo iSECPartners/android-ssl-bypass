@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -45,34 +46,42 @@ public class TraceMethodsJDIPlugin extends AbstractJDIPlugin {
 
 	@Override
 	public void handleEvent(Event event) {
+		StringBuilder out = new StringBuilder("");
 		if (event instanceof MethodEntryEvent) {
 			MethodEntryEvent meEvent = (MethodEntryEvent) event;
 			ThreadReference tr = meEvent.thread();
 			StackFrame fr;
-			StringBuilder out = new StringBuilder("");
+			
 			try {
-				fr = tr.frames().get(0);
+				fr = tr.frame(0);
 				Location loc = fr.location();
 				Method method = loc.method();
-				out.append("\n =============== \n" + method.toString() + "\n=============== \n");
+				out.append("\n===============\n" + method.toString()
+						+ "\n===============\n");
 				out.append("local variables:\n");
-				Map<LocalVariable, Value> vars = fr.getValues(fr.visibleVariables());
-				for(LocalVariable key : vars.keySet()){
-					out.append("\t" + key + " : " + vars.get(key) + "\n");
+				List<LocalVariable> visVars = fr.visibleVariables();
+				if (visVars != null && !visVars.isEmpty()) {
+					Map<LocalVariable, Value> vars = fr.getValues(visVars);
+					for (LocalVariable key : vars.keySet()) {
+						out.append("\t" + key + " : " + vars.get(key) + "\n");
+					}
 				}
 				out.append("\n =============== \n");
-				LOGGER.info(out.toString());
 			} catch (IncompatibleThreadStateException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				out.append("could not get visible variables due to IncompatibleThreadStateException");
+				LOGGER.error(e);
 			} catch (AbsentInformationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				out.append("could not get visible variables due to AbsentInformationException");
+				//TODO should probably print full stack trace
+				LOGGER.error(e);
 			}
 
 		} else {
-			LOGGER.info("received unexpected event type: " + event);
+			out.append("unexpected event type for handler: " + event);
 		}
+		
+		LOGGER.info(out.toString());
+		this.output(out.toString());
 		this.resumeEventSet();
 	}
 

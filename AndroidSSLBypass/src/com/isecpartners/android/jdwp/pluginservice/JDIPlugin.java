@@ -2,6 +2,7 @@ package com.isecpartners.android.jdwp.pluginservice;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import com.isecpartners.android.jdwp.LocationNotFoundException;
 import com.isecpartners.android.jdwp.ReferenceTypeNotFoundException;

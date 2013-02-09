@@ -41,19 +41,16 @@ import com.sun.jdi.request.StepRequest;
 public class DalvikUtils extends Thread{
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(DalvikUtils.class.getName());
-	private static final String NEW_INSTANCE_METHOD_NAME = "newInstance";
-	private static final String LOAD_CLASS_METHOD_NAME = "loadClass";
 	public static ArrayList<Value> NOARGS = new ArrayList<Value>();
 	private ThreadReference currentThread = null;
 	private EventRequestManager eventRequestManager = null;
-	private String name = null;
 	private VirtualMachine vm = null;
-	private DalvikUtils vmUtils;
 	private ClassLoaderUtils classLoaderUtils;
+	private String name = null;
 
 	public DalvikUtils(VirtualMachine vm, int threadIndex) {
 		this.vm = vm;
-		this.name = this.vm.name();
+		this.name  = this.vm.name();
 
 		// TODO dont know if this should be defaulted or exception thrown
 		if ((threadIndex < 0) || (threadIndex >= this.vm.allThreads().size())) {
@@ -272,8 +269,20 @@ public class DalvikUtils extends Thread{
 		}
 		return null;
 	}
+	
+	public Value getLocalVariableValue(ThreadReference tr, int frameIdx,
+			String localName) throws AbsentInformationException,
+			IncompatibleThreadStateException {
+		StackFrame fr = tr.frame(frameIdx);
+		Value ret = null;
+		LocalVariable var = fr.visibleVariableByName(localName);
+		if (var != null) {
+			ret = fr.getValue(var);
+		}
+		return ret;
+	}
 
-	public Value getLocalVariableValue(ThreadReference tr, StackFrame fr,
+	public Value getLocalVariableValue(StackFrame fr,
 			String localName) throws AbsentInformationException,
 			IncompatibleThreadStateException {
 		Value ret = null;
@@ -283,9 +292,28 @@ public class DalvikUtils extends Thread{
 		}
 		return ret;
 	}
+	
+	public StringReference getLocalVariableValueAsString(StackFrame fr,
+			String localName) throws AbsentInformationException,
+			IncompatibleThreadStateException {
+		Value val = null;
+		StringReference ret = null;
+		LocalVariable var = fr.visibleVariableByName(localName);
+		if (var != null) {
+			val = fr.getValue(var);
+			if( val instanceof StringReference){
+				ret = (StringReference) fr.getValue(var);
+			} else {
+				LOGGER.warn("getLocalVariableValueAsString called with non-String Object: " + var.getClass().getName());
+			}
+		} else {
+			LOGGER.warn("LocalVariable with name: " + localName + " was not found");
+		}
+		return ret;
+	}
 
 	/*
-	 * THis function appears to take an exorbitant amount of time why why why
+	 * This function appears to take an exorbitant amount of time why why why
 	 */
 	public boolean setLocalVariableValue(int i, String name, Value sf)
 			throws IncompatibleThreadStateException, InvalidTypeException,

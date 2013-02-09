@@ -14,9 +14,12 @@ public class JDIPluginService extends AbstractPluginService {
 	//private Iterator<JDIPlugin> plugins;
 	
 	public static JDIPluginService getInstance(File dir) {
-		if (JDIPluginService.pluginService == null) {
-			JDIPluginService.pluginService = new JDIPluginService(dir);
-		}
+		/*not really working as singleton because not reloading when load plugins is called again ...
+		 * really whole architecture should be reworked
+		 * 
+		 * if (JDIPluginService.pluginService == null) {
+		 */
+		JDIPluginService.pluginService = new JDIPluginService(dir);
 		return JDIPluginService.pluginService;
 	}
 
@@ -28,6 +31,7 @@ public class JDIPluginService extends AbstractPluginService {
 
 	@Override
 	public Iterator<JDIPlugin> getPlugins() {
+		this.serviceLoader.reload();
 		return this.serviceLoader.iterator();
 	}
 }

@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -46,7 +48,7 @@ public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin 
 	public AbstractJDIPlugin(String name){
 		this.name = name;
 	}
-
+	
 	public void output(String message){
 		LOGGER.info(message);
 		try {
@@ -111,9 +113,10 @@ public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin 
 		this.vmem = vmem;
 		this.basePath = path;
 		this.propsPath = path + File.separator + this.getPluginName() + ".prop";
-		this.propsFile = new File(this.propsPath);
-		if(this.propsFile.isFile()){
-			this.properties.load(new FileInputStream(this.propsPath));
+		
+		URL pathURL = ClassLoader.getSystemResource(this.propsPath);
+		if(pathURL != null) {
+		     this.propsFile = new File(pathURL.getPath());
 		}
 		this.setupEvents();
 	}

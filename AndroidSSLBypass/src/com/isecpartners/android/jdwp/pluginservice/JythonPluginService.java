@@ -19,9 +19,8 @@ public class JythonPluginService extends AbstractPluginService {
 	}
 
 	public static JythonPluginService getInstance(File dir) {
-		if (JythonPluginService.pluginService == null) {
-			JythonPluginService.pluginService = new JythonPluginService(dir);
-		}
+		//not really working as singleton because not reloading when load plugins is called again ...
+		JythonPluginService.pluginService = new JythonPluginService(dir);
 		return JythonPluginService.pluginService;
 	}
 

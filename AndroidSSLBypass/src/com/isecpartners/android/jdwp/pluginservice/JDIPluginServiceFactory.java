@@ -10,8 +10,11 @@ public class JDIPluginServiceFactory {
 			.getLogger(JDIPluginServiceFactory.class.getName());
 
 	public static PluginService createPluginService(String pluginsPath)
-			throws IOException {
+			throws IOException, PluginNotFoundException {
 		File dir = new File(pluginsPath);
+		if(!dir.exists()){
+			throw new PluginNotFoundException("could not create plugin service with dir: " + pluginsPath);
+		}
 		LOGGER.info("creating JDIPluginService for path: " + dir.getAbsolutePath());
 		ClasspathUtils.addDirToClasspath(dir);
 		return JDIPluginService.getInstance(dir);

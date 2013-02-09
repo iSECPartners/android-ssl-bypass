@@ -1,16 +1,23 @@
-* Currently not calling tearDownEvents() always for plugins to remove breakpoints, 
-  etc.
+===Feature Requests===
+ 
+  	* Ability to unload plugins on demand
 
-  	* maybe create an unload plugins command which removes all currently set events for that plugin ....
+	* Multiple handler support for a single event (might be tricky)
 
-  * Add support for all VM events (currently only four most used types supported)
+	* Support for all VM events (http://docs.oracle.com/javase/1.5.0/docs/guide/jpda/jdi/com/sun/jdi/event/package-summary.html) - currently only four most used are supported
 
-* No support for multiple handlers for a single event
+	* Support for interaction with the commandline via Jython plugins  
+	
+===Random TODOs===
 
-* Make sure everything is platform independent and configurable
+	* Currently not calling tearDownEvents() always for plugins to remove event requests
 
-* Add documentation!!
+	* Make sure everything is platform independent and configurable
 
-* Add licensing info and thirdparty libs documentation
+	* Add documentation!!
 
-* Fix all the bugs :)
+	* Add licensing info and thirdparty libs documentation
+
+	* Entire plugin service architecture should probably be reworked to something better and cleaner
+
+	* Fix all the bugs :)

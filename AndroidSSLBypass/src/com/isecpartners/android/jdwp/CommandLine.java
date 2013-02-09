@@ -34,6 +34,7 @@ import com.isecpartners.android.jdwp.pluginservice.JDIPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JDIPluginServiceFactory;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginServiceFactory;
+import com.isecpartners.android.jdwp.pluginservice.PluginNotFoundException;
 import com.sun.jdi.request.EventRequest;
 
 public class CommandLine extends QueueAgent {
@@ -448,8 +449,15 @@ public class CommandLine extends QueueAgent {
 		} catch (IOException e1) {
 			LOGGER.error("could not load plugins due to IO exception: " + e1);
 			sb.append("ERROR: could not load plugins due to IO exception");
+		} catch (PluginNotFoundException e) {
+			LOGGER.error("plugin not found");
+			sb.append("ERROR: could not load plugins due to PluginNotFoundException: " + e.getMessage());
 		}
 		return sb.toString();
+	}
+	
+	public String unloadPlugins(String pluginDirToUnload){
+		return "not implemented";
 	}
 
 	/**
@@ -468,10 +476,12 @@ public class CommandLine extends QueueAgent {
 				this.jythonPluginService.initPlugin(this.ctrl.getVMEM(),
 						pluginName);
 				LOGGER.info("attempted to init plugin: " + pluginName);
-				sb.append("plugin initialized: " + pluginName);
+				sb.append("attempted to init plugin: " + pluginName);
 			} catch (NoVMSessionException e) {
 				LOGGER.error("No virtual machine session");
 				sb.append("ERROR: no virtual machine session");
+			} catch (PluginNotFoundException e) {
+				sb.append("plugin not found: " + e.getMessage());
 			}
 		return sb.toString();
 	}
@@ -498,13 +508,13 @@ public class CommandLine extends QueueAgent {
 	@Command(name = "list-vm-events", abbrev = "events", description= "List all the currently set VM events (breakpoints, etc.)")
 	public String listVMEvents(){
 		StringBuilder sb = new StringBuilder();
-		sb.append("Currently set VirtualMachine events: \n");
+		sb.append("Currently set VirtualMachine events: \n\n");
 		if(this.ctrl.isConnected()){
 			try {
 				VirtualMachineEventManager vmem = this.ctrl.getVMEM();
 				for(EventRequest er : vmem.getVmEvents().keySet()){
 					JDIPlugin handler = vmem.getVmEvents().get(er);
-					sb.append(INDENT + er + " handler: " + handler.getClass().getName());
+					sb.append(INDENT + "event request: " + er + ", handler: " + handler.getClass().getName() + "\n\n");
 				}
 			} catch (NoVMSessionException e) {
 				// TODO Auto-generated catch block
