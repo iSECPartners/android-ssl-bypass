@@ -53,7 +53,7 @@ public class SSLTestActivity extends Activity implements OnClickListener{
 	}
 	
 	private InputStream testHttpsUrlPinned() throws IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, KeyStoreException {
-		URL url = new URL("https://10.0.2.2/");
+		URL url = new URL("https://10.0.2.2");
 		Context context = this.getApplicationContext();
 		AssetManager assetManager = context.getAssets();
 		

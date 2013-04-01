@@ -29,6 +29,8 @@ public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin 
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(AbstractJDIPlugin.class.getName());
 
+	protected static final String DEFAULT_JAVA_PLUGIN_DIR = "plugins";
+
 	protected Event currentEvent = null;
 	protected ArrayList<EventRequest> eventRequestList = new ArrayList<EventRequest>();
 	protected boolean mDone = false;
@@ -43,10 +45,25 @@ public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin 
 
 	protected String basePath = null;
 
-	private File propsFile;
+	private File propsFile = null;
 
 	public AbstractJDIPlugin(String name){
 		this.name = name;
+		String fname = DEFAULT_JAVA_PLUGIN_DIR + File.separator
+				+ this.name + ".prop";
+		this.propsFile = new File(fname);
+		FileInputStream fis;
+		try {
+			fis = new FileInputStream(this.propsFile);
+			this.properties.load(fis);
+		} catch (FileNotFoundException e) {
+			LOGGER.error("could not load properties file, may cause problems for plugins that require it!");
+			LOGGER.error(e.toString());
+		} catch (IOException e) {
+			LOGGER.error("could not load properties file, may cause problems for plugins that require it!");
+			LOGGER.error(e.toString());
+		}
+		
 	}
 	
 	public void output(String message){
