@@ -53,7 +53,7 @@ public class ClassLoaderUtils {
 	}
 
 	public ClassType getDexClassLoaderClassType() throws InvalidTypeException, ClassNotLoadedException, IncompatibleThreadStateException, InvocationException{
-		dexLoader = this.vmUtils.findClassType(DEX_CLASS_LOADER_CLASS);
+		dexLoader = (ClassType) this.vmUtils.findReferenceType(DEX_CLASS_LOADER_CLASS);
 		if (dexLoader != null) {
 			LOGGER.info("DexClassLoader already loaded!");
 		} else {
@@ -65,8 +65,8 @@ public class ClassLoaderUtils {
 						.loadClassReflection(this.currentThread, DEX_CLASS_LOADER_CLASS);
 				// Note the use of reflectedType() vs referenceType()
 				dexLoader = (ClassType) dexLoaderClassObj.reflectedType();
-				dexLoader = this.vmUtils
-						.findClassType(DEX_CLASS_LOADER_CLASS);
+				dexLoader = (ClassType) this.vmUtils
+						.findReferenceType(DEX_CLASS_LOADER_CLASS);
 				LOGGER.info("got dexLoader: " + dexLoader.name());
 		}
 		return dexLoader;
@@ -132,7 +132,7 @@ public class ClassLoaderUtils {
 		LOGGER
 				.info("attempting to get the system class loader (Class.getSystemClassLoader)");
 		Value toreturn = null;
-		ClassType cl = this.vmUtils.findClassType("java.lang.ClassLoader");
+		ClassType cl = (ClassType) this.vmUtils.findReferenceType("java.lang.ClassLoader");
 		if (cl != null) {
 			List<Method> getSCLMS = cl.methodsByName("getSystemClassLoader");
 			Method getSCL = getSCLMS.get(0);
@@ -236,7 +236,7 @@ public class ClassLoaderUtils {
 			DexClassLoaderNotFoundException, NoLoadClassMethodException {
 
 		// first check if class is already loaded
-		ClassType clsType = this.vmUtils.findClassType(className);
+		ClassType clsType = (ClassType) this.vmUtils.findReferenceType(className);
 		if (clsType != null) {
 			LOGGER.info("class already loaded");
 			return new ClassWrapper(clsType.classObject(), this.currentThread);

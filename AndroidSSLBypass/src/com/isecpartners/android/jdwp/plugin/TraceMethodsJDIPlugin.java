@@ -51,12 +51,11 @@ public class TraceMethodsJDIPlugin extends AbstractJDIPlugin {
 			MethodEntryEvent meEvent = (MethodEntryEvent) event;
 			ThreadReference tr = meEvent.thread();
 			StackFrame fr;
-			
 			try {
 				fr = tr.frame(0);
 				Location loc = fr.location();
 				Method method = loc.method();
-				out.append("\n===============\n" + method.toString()
+				out.append("\n===============\n" + method.toString() + " " + method.name()
 						+ "\n===============\n");
 				out.append("local variables:\n");
 				List<LocalVariable> visVars = fr.visibleVariables();

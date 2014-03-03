@@ -12,12 +12,16 @@ public class JDIPluginServiceFactory {
 	public static PluginService createPluginService(String pluginsPath)
 			throws IOException, PluginNotFoundException {
 		File dir = new File(pluginsPath);
-		if(!dir.exists()){
-			throw new PluginNotFoundException("could not create plugin service with dir: " + pluginsPath);
+		return createPluginService(dir);
+	}
+
+	public static PluginService createPluginService(File pPath) throws PluginNotFoundException, IOException{
+		if(!pPath.exists()){
+			throw new PluginNotFoundException("could not create plugin service with dir: " + pPath);
 		}
-		LOGGER.info("creating JDIPluginService for path: " + dir.getAbsolutePath());
-		ClasspathUtils.addDirToClasspath(dir);
-		return JDIPluginService.getInstance(dir);
+		LOGGER.info("creating JDIPluginService for path: " + pPath.getAbsolutePath());
+		ClasspathUtils.addDirToClasspath(pPath);
+		return JDIPluginService.getInstance(pPath);
 	}
 	
 }

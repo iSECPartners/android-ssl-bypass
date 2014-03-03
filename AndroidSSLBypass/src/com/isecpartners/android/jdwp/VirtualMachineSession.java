@@ -107,7 +107,7 @@ public class VirtualMachineSession extends QueueAgent {
 		this.vmem.start();
 		//this.vmUtils.resumeAllThreads();
 		try {
-			this.sendMessage(new Message(Message.Type.SESSION_STARTED, "successfully connected"));
+			this.sendMessage(new Message(Message.Type.SESSION_STARTED, this.vm));
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

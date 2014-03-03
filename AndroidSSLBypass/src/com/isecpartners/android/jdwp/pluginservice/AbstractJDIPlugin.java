@@ -45,25 +45,18 @@ public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin 
 
 	protected String basePath = null;
 
+	public String getBasePath() {
+		return basePath;
+	}
+
+	public void setBasePath(String basePath) {
+		this.basePath = basePath;
+	}
+
 	private File propsFile = null;
 
 	public AbstractJDIPlugin(String name){
 		this.name = name;
-		String fname = DEFAULT_JAVA_PLUGIN_DIR + File.separator
-				+ this.name + ".prop";
-		this.propsFile = new File(fname);
-		FileInputStream fis;
-		try {
-			fis = new FileInputStream(this.propsFile);
-			this.properties.load(fis);
-		} catch (FileNotFoundException e) {
-			LOGGER.error("could not load properties file, may cause problems for plugins that require it!");
-			LOGGER.error(e.toString());
-		} catch (IOException e) {
-			LOGGER.error("could not load properties file, may cause problems for plugins that require it!");
-			LOGGER.error(e.toString());
-		}
-		
 	}
 	
 	public void output(String message){
@@ -134,6 +127,20 @@ public abstract class AbstractJDIPlugin extends QueueAgent implements JDIPlugin 
 		URL pathURL = ClassLoader.getSystemResource(this.propsPath);
 		if(pathURL != null) {
 		     this.propsFile = new File(pathURL.getPath());
+		     FileInputStream fis;
+				try {
+					fis = new FileInputStream(this.propsFile);
+					this.properties.load(fis);
+				} catch (FileNotFoundException e) {
+					LOGGER.error("could not load properties file, may cause problems for plugins that require it!");
+					LOGGER.error(e.toString());
+				} catch (IOException e) {
+					LOGGER.error("could not load properties file, may cause problems for plugins that require it!");
+					LOGGER.error(e.toString());
+				}
+				
+		} else {
+			LOGGER.error("could not load properties file:" + this.propsPath);
 		}
 		this.setupEvents();
 	}

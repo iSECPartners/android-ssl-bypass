@@ -114,6 +114,7 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 
 	public SSLBypassJDIPlugin() throws FileNotFoundException, IOException {
 		super(SSLBypassJDIPlugin.class.getName());
+		
 	}
 
 	private void bpEntryEvent(BreakpointEvent event) {
@@ -192,8 +193,8 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 			IncompatibleThreadStateException, InvocationException,
 			DexClassLoaderNotFoundException, NoLoadClassMethodException {
 
-		ClassType scheme = vmUtils.findClassType(SSLBypassJDIPlugin.SCHEME);
-		ClassType ezssl = vmUtils.findClassType(this.easySSLSocketFactory);
+		ClassType scheme = (ClassType) vmUtils.findReferenceType(SSLBypassJDIPlugin.SCHEME);
+		ClassType ezssl = (ClassType) vmUtils.findReferenceType(this.easySSLSocketFactory);
 		ThreadReference tr = vmUtils.getCurrentThread();
 		ObjectReference ezsslObj = null;
 		ClassLoaderUtils classLoaderUtils = vmUtils.getClassLoaderUtils();
@@ -289,8 +290,8 @@ public class SSLBypassJDIPlugin extends AbstractJDIPlugin {
 			throws InvalidTypeException, ClassNotLoadedException,
 			IncompatibleThreadStateException, InvocationException {
 		ThreadReference tr = vmUtils.getCurrentThread();
-		ClassType httpsURLConn = vmUtils
-				.findClassType(SSLBypassJDIPlugin.HTTPS_URL_CONNECTION);
+		ClassType httpsURLConn = (ClassType) vmUtils
+				.findReferenceType(SSLBypassJDIPlugin.HTTPS_URL_CONNECTION);
 		List<Method> sdhvm = httpsURLConn
 				.methodsByName(SSLBypassJDIPlugin.setDefaultHostnameVerifier);
 		Method sdhv = sdhvm.get(0);

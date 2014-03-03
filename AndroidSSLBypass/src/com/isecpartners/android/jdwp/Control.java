@@ -1,6 +1,7 @@
 package com.isecpartners.android.jdwp;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -8,6 +9,10 @@ import com.isecpartners.android.jdwp.common.Message;
 import com.isecpartners.android.jdwp.common.QueueAgent;
 import com.isecpartners.android.jdwp.connection.NoAttachingConnectorException;
 import com.isecpartners.android.jdwp.pluginservice.JDIPlugin;
+import com.sun.jdi.Method;
+import com.sun.jdi.ReferenceType;
+import com.sun.jdi.Type;
+import com.sun.jdi.VirtualMachine;
 
 public class Control extends QueueAgent {
 	private final static org.apache.log4j.Logger LOGGER = Logger
@@ -18,6 +23,8 @@ public class Control extends QueueAgent {
 	private VirtualMachineSession vmSession = null;
 	private boolean connected = false;
 	private ArrayList<JDIPlugin> vmHandlers = new ArrayList<JDIPlugin>();
+	
+	private VirtualMachine vm;
 
 	public Control(String host, String port, ArrayList<JDIPlugin> vmHandlers) {
 		this.host = host;
@@ -114,4 +121,28 @@ public class Control extends QueueAgent {
 	public void setHandlerPlugins(ArrayList<JDIPlugin> handlerPlugins) {
 		this.vmHandlers = handlerPlugins;
 	}
+
+	public ArrayList<String> listClasses(String className) {
+		ArrayList<String> classes = new ArrayList<String>();
+		if(this.isConnected()){
+			DalvikUtils vmUtils = this.vmSession.getVMUtils();
+			List<Type> types = vmUtils.searchForType(className);
+			for(Type t : types){
+				classes.add(t.name());
+			}
+		}
+		return classes;
+	}
+
+	public ArrayList<String> listClassMethods(String className) {
+		ArrayList<String> methods = new ArrayList<String>();
+		if(this.isConnected()){
+			DalvikUtils vmUtils = this.vmSession.getVMUtils();
+			ReferenceType type = vmUtils.findReferenceType(className);
+			for(Method m : type.allMethods()){
+				methods.add(m.toString());
+			}
+		}
+		return methods;
+		}
 }

@@ -65,7 +65,7 @@ public class VirtualMachineEventManager extends QueueAgent {
 	public ClassPrepareRequest createClassPrepareRequest(String classFilter,
 			JDIPlugin vmeh) throws LocationNotFoundException,
 			ReferenceTypeNotFoundException {
-		Type classtype = this.vmUtils.findClassType(classFilter);
+		Type classtype = this.vmUtils.findReferenceType(classFilter);
 		if (classtype == null) {
 			throw new ReferenceTypeNotFoundException(classFilter);
 		}
@@ -80,7 +80,7 @@ public class VirtualMachineEventManager extends QueueAgent {
 	public MethodEntryRequest createMethodEntryRequest(String classFilter,
 			JDIPlugin vmeh) throws LocationNotFoundException,
 			ReferenceTypeNotFoundException {
-		Type classtype = this.vmUtils.findClassType(classFilter);
+		Type classtype = this.vmUtils.findReferenceType(classFilter);
 		if (classtype == null) {
 			throw new ReferenceTypeNotFoundException(classFilter);
 		}
@@ -96,7 +96,7 @@ public class VirtualMachineEventManager extends QueueAgent {
 	public MethodExitRequest createMethodExitRequest(String classFilter,
 			JDIPlugin vmeh) throws LocationNotFoundException,
 			ReferenceTypeNotFoundException {
-		Type classtype = this.vmUtils.findClassType(classFilter);
+		Type classtype = this.vmUtils.findReferenceType(classFilter);
 		if (classtype == null) {
 			throw new ReferenceTypeNotFoundException(classFilter);
 		}

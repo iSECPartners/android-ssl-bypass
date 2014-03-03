@@ -35,6 +35,10 @@ import com.isecpartners.android.jdwp.pluginservice.JDIPluginServiceFactory;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginService;
 import com.isecpartners.android.jdwp.pluginservice.JythonPluginServiceFactory;
 import com.isecpartners.android.jdwp.pluginservice.PluginNotFoundException;
+import com.sun.jdi.ClassType;
+import com.sun.jdi.Method;
+import com.sun.jdi.ReferenceType;
+import com.sun.jdi.VirtualMachine;
 import com.sun.jdi.request.EventRequest;
 
 public class CommandLine extends QueueAgent {
@@ -254,7 +258,15 @@ public class CommandLine extends QueueAgent {
 		StringBuilder sb = new StringBuilder("Devices:\n");
 		IDevice[] devs = this.adb.getDevices();
 		for (IDevice d : devs) {
-			sb.append(INDENT + d.getSerialNumber() + " : " + d.getName() + "\n");
+			if(this.currentDevice == null){
+				this.selectDevice(d);
+			}
+			
+			sb.append(INDENT + d.getSerialNumber() + " : " + d.getName());
+			if(d.getSerialNumber().equals(this.currentDevice.getSerialNumber())){
+				sb.append(" -- CURRENT");
+			}
+			sb.append("\n");
 		}
 		return sb.toString();
 	}
@@ -276,13 +288,17 @@ public class CommandLine extends QueueAgent {
 		IDevice[] devs = this.adb.getDevices();
 		for (IDevice d : devs) {
 			if (d.getSerialNumber().equals(devID)) {
-				this.currentDevice = d;
-				this.adb.setCurrentDevice(d);
+				this.selectDevice(d);
 				break;
 			}
 		}
-		sb.append(INDENT + this.adb.getCurrentDevice());
+		sb.append(INDENT + this.currentDevice);
 		return sb.toString();
+	}
+
+	private void selectDevice(IDevice iDevice) {
+		this.currentDevice = iDevice;
+		this.adb.setCurrentDevice(iDevice);
 	}
 
 	/**
@@ -328,53 +344,51 @@ public class CommandLine extends QueueAgent {
 			return "could not connect, already attached to VM";
 		}
 		this.ctrl = new Control(host, port, this.handlerPlugins);
-		//this is not working probably due to conflict with the VirtualMachineSession consuming the ctrl out queue?
-		//this.ctrl.setQueueAgentListener(this);
+		// this is not working probably due to conflict with the
+		// VirtualMachineSession consuming the ctrl out queue?
+		// this.ctrl.setQueueAgentListener(this);
 		this.ctrl.start();
-		//TODO this is a bad hack for now, need to add a timeout here
-		while(!this.ctrl.isConnected()){
+		// TODO this is a bad hack for now, need to add a timeout here
+		while (!this.ctrl.isConnected()) {
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}	
+			}
 		}
 		this.connected = true;
 		return "successfully attached to " + host + ":" + port;
 	}
 
 	/**
-	 * Attach to the listening jdwp port for the given process (app) on the
-	 * emulator or localhost.
+	 * Attach to the listening jdwp port for the given process (app).
 	 * 
-	 * @param host
-	 *            The address of the target device
 	 * @param port
 	 *            The target listening jdwp port
 	 * @return Command result
 	 */
-	@Command(name = "attach", abbrev = "a", description = "Attach to JDWP process")
+	@Command(name = "attach", abbrev = "a", description = "Attach to listening JDWP port of application on device")
 	public String attach(
-			@Param(name = "port", description = "target virtual machine jdwp listening port (see 'adb jdwp' and use DDMS to discover port)") String port) {
+			@Param(name = "port", description = "target virtual machine jdwp listening port (see 'list-devices and list-clients' or use DDMS to discover port)") String port) {
 
-		CommandLine.LOGGER.info("connecting - localhost:" + port);
+		CommandLine.LOGGER.info("attaching to localhost:" + port);
 		if (this.ctrl != null && this.ctrl.isConnected()) {
 			return "could not connect, already attached to VM";
 		}
 		this.ctrl = new Control(port, this.handlerPlugins);
-		//this is not working probably due to conflict with the VirtualMachineSession consuming the ctrl out queue?
-		//this.ctrl.setQueueAgentListener(this);
+		// this is not working probably due to conflict with the
+		// VirtualMachineSession consuming the ctrl out queue?
+		// this.ctrl.setQueueAgentListener(this);
 		this.ctrl.start();
-		
-		//TODO this is a bad hack for now, need to add a timeout here
-		while(!this.ctrl.isConnected()){
+		// TODO this is a bad hack for now, need to add a timeout here
+		while (!this.ctrl.isConnected()) {
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}	
+			}
 		}
 		this.connected = true;
 		return "successfully attached to localhost:" + port;
@@ -387,6 +401,7 @@ public class CommandLine extends QueueAgent {
 	 */
 	@Command(name = "detach", abbrev = "d", description = "Detach from JDWP process")
 	public String detach() {
+		// TODO this does not work
 		if (this.ctrl != null && this.ctrl.isConnected()) {
 
 			try {
@@ -394,7 +409,7 @@ public class CommandLine extends QueueAgent {
 			} catch (InterruptedException e) {
 				LOGGER.error("could not send STOP message");
 			}
-			return "detach completed";
+			return "detach not implemented";
 		} else {
 			return "could not detach, not connected";
 		}
@@ -413,22 +428,27 @@ public class CommandLine extends QueueAgent {
 	public String loadPlugins(
 			@Param(name = "pluginsPath", description = "Path the folder which contains plugins (custom classes extending the AbstractJDIlPLugin class) to load.") String pluginsPath) {
 		LOGGER.info("attempting to load plugins from: " + pluginsPath);
-		StringBuilder sb = new StringBuilder("attempting to load plugins from: " + pluginsPath + " .... \n");
-		if(!this.connected){
+		StringBuilder sb = new StringBuilder(
+				"attempting to load plugins from: " + pluginsPath + " .... \n");
+		if (!this.connected) {
 			return "not attached, can't load plugins";
 		}
 		try {
+			File pPath = new File(pluginsPath);
+			if (!pPath.exists()) {
+				return "could not find plugins path: " + pluginsPath;
+			}
 			this.pluginService = (JDIPluginService) JDIPluginServiceFactory
-					.createPluginService(pluginsPath);
+					.createPluginService(pPath);
 			this.jythonPluginService = (JythonPluginService) JythonPluginServiceFactory
-					.createPluginService(pluginsPath);
+					.createPluginService(pPath);
 			this.vmHandlers = this.pluginService.getPlugins();
 			LOGGER.info(this.vmHandlers.hasNext());
 			this.jythonHandlers = this.jythonPluginService.getPlugins();
-		
+
 			sb.append("loaded Java plugins: \n");
 			while (this.vmHandlers.hasNext()) {
-				
+
 				JDIPlugin handler = this.vmHandlers.next();
 				this.handlerPlugins.add(handler);
 				String name = handler.getPluginName();
@@ -443,20 +463,21 @@ public class CommandLine extends QueueAgent {
 				LOGGER.info("got jython plugin: " + name);
 				sb.append(INDENT + name + "\n");
 			}
-		
+
 			this.ctrl.setHandlerPlugins(this.handlerPlugins);
-			
+
 		} catch (IOException e1) {
 			LOGGER.error("could not load plugins due to IO exception: " + e1);
 			sb.append("ERROR: could not load plugins due to IO exception");
 		} catch (PluginNotFoundException e) {
 			LOGGER.error("plugin not found");
-			sb.append("ERROR: could not load plugins due to PluginNotFoundException: " + e.getMessage());
+			sb.append("ERROR: could not load plugins due to PluginNotFoundException: "
+					+ e.getMessage());
 		}
 		return sb.toString();
 	}
-	
-	public String unloadPlugins(String pluginDirToUnload){
+
+	public String unloadPlugins(String pluginDirToUnload) {
 		return "not implemented";
 	}
 
@@ -469,21 +490,36 @@ public class CommandLine extends QueueAgent {
 	@Command(name = "init-plugin", abbrev = "ip", description = "Initialize a specific plugin from those available (see list-plugins).")
 	public String initializePlugin(
 			@Param(name = "plugin name", description = "name of plugin to initialize") String pluginName) {
-		StringBuilder sb = new StringBuilder("attempting to initalize plugin: " + pluginName + "\n");
-	LOGGER.debug("ctrl: " + this.ctrl + " , pluginName: " + pluginName);
-			try {
-				this.pluginService.initPlugin(this.ctrl.getVMEM(), pluginName);
-				this.jythonPluginService.initPlugin(this.ctrl.getVMEM(),
-						pluginName);
-				LOGGER.info("attempted to init plugin: " + pluginName);
-				sb.append("attempted to init plugin: " + pluginName);
-			} catch (NoVMSessionException e) {
-				LOGGER.error("No virtual machine session");
-				sb.append("ERROR: no virtual machine session");
-			} catch (PluginNotFoundException e) {
-				sb.append("plugin not found: " + e.getMessage());
-			}
+		StringBuilder sb = new StringBuilder("attempting to initalize plugin: "
+				+ pluginName + "\n");
+		LOGGER.debug("ctrl: " + this.ctrl + " , pluginName: " + pluginName);
+		try {
+			this.pluginService.initPlugin(this.ctrl.getVMEM(), pluginName);
+			this.jythonPluginService
+					.initPlugin(this.ctrl.getVMEM(), pluginName);
+			LOGGER.info("attempted to init plugin: " + pluginName);
+			sb.append("attempted to init plugin: " + pluginName);
+		} catch (NoVMSessionException e) {
+			LOGGER.error("No virtual machine session");
+			sb.append("ERROR: no virtual machine session");
+		} catch (PluginNotFoundException e) {
+			sb.append("plugin not found: " + e.getMessage());
+		}
 		return sb.toString();
+	}
+
+	/**
+	 * Load and init specified plugin.
+	 * 
+	 * @return
+	 */
+	@Command(name = "load-init-plugin", abbrev = "lip", description = "Load and init the specified plugin")
+	public String loadAndInitPlugin(
+			@Param(name = "plugin name", description = "name of plugin to initialize") String pluginName,
+			@Param(name = "pluginsPath", description = "Path the folder which contains plugins (custom classes extending the AbstractJDIlPLugin class) to load.") String pluginsPath) {
+		String msg = this.loadPlugins(pluginsPath);
+		msg += this.initializePlugin(pluginName);
+		return "attempted to laod and init plugin: " + msg;
 	}
 
 	/**
@@ -504,17 +540,18 @@ public class CommandLine extends QueueAgent {
 		}
 		return plugins.toString();
 	}
-	
-	@Command(name = "list-vm-events", abbrev = "events", description= "List all the currently set VM events (breakpoints, etc.)")
-	public String listVMEvents(){
+
+	@Command(name = "list-vm-events", abbrev = "events", description = "List all the currently set VM events (breakpoints, etc.)")
+	public String listVMEvents() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Currently set VirtualMachine events: \n\n");
-		if(this.ctrl.isConnected()){
+		if (this.ctrl.isConnected()) {
 			try {
 				VirtualMachineEventManager vmem = this.ctrl.getVMEM();
-				for(EventRequest er : vmem.getVmEvents().keySet()){
+				for (EventRequest er : vmem.getVmEvents().keySet()) {
 					JDIPlugin handler = vmem.getVmEvents().get(er);
-					sb.append(INDENT + "event request: " + er + ", handler: " + handler.getClass().getName() + "\n\n");
+					sb.append(INDENT + "event request: " + er + ", handler: "
+							+ handler.getClass().getName() + "\n\n");
 				}
 			} catch (NoVMSessionException e) {
 				// TODO Auto-generated catch block
@@ -522,6 +559,69 @@ public class CommandLine extends QueueAgent {
 			}
 		}
 		return sb.toString();
+	}
+
+	/*
+	 * List classes
+	 */
+	@Command(name = "list-classes", abbrev = "lsc", description = "list all loaded classes")
+	public String listClasses() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("CLASSES:\n");
+		if (this.ctrl.isConnected()) {
+			VirtualMachineEventManager vmem;
+			try {
+				vmem = this.ctrl.getVMEM();
+				DalvikUtils dalvikUtils = vmem.getDalvikUtils(0);
+				List<ReferenceType> classes = dalvikUtils.getAllClasses();
+				for (ReferenceType c : classes) {
+					sb.append(INDENT + c.name() + "\n");
+				}
+				return sb.toString();
+			} catch (NoVMSessionException e) {
+				return "could not get dalivk vm is not connected";
+			}
+		} else {
+			return "could not list classes, not connected";
+		}
+	}
+
+	/*
+	 * List methods of class
+	 */
+	@Command(name = "list-class-methods", abbrev = "lscm", description = "list all class methods")
+	public String listClasses(@Param(name = "classname") String className) {
+		StringBuilder sb = new StringBuilder();
+
+		if (this.ctrl.isConnected()) {
+
+			ArrayList<String> methods = this.ctrl.listClassMethods(className);
+			for (String m : methods) {
+				sb.append(INDENT + m + "\n");
+			}
+			return sb.toString();
+		} else {
+			return "could not list class methods, not connected";
+		}
+	}
+
+	/*
+	 * Find classes
+	 */
+	@Command(name = "find-classes", abbrev = "fc", description = "find all loaded classes matching pattern")
+	public String findClasses(@Param(name = "filter") String filter) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("CLASSES:\n");
+		if (this.ctrl.isConnected()) {
+
+			ArrayList<String> classes = this.ctrl.listClasses(filter);
+			for (String clazz : classes) {
+				sb.append(INDENT + clazz + "\n");
+			}
+			return sb.toString();
+		} else {
+			return "could not list classes, not connected";
+		}
 	}
 
 	/*

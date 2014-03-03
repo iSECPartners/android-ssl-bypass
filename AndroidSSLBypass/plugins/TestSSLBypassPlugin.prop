@@ -1,0 +1,10 @@
+external.source.apk.path=/data/app/com.isec.helperapp-1.apk
+external.source.apk.package.name=com.isec.helperapp
+external.data.cache.path=/data/dalvik-cache/
+external.trustmanager.class=com.isec.helperapp.TrustAllTrustManager
+external.easysslsocketfactory.class=com.isec.helperapp.EasySSLSocketFactory
+target.app.lib.path=/data/data/com.squareup.cardcase/lib/ 
+target.app.data.path=/data/data/com.squareup.cardcase/
+target.app.ssl.port=443
+target.main.activity=com.squareup.cardcase.ui.RootActivity
+	

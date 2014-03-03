@@ -1,6 +1,7 @@
 package com.isecpartners.android.jdwp;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -22,6 +23,7 @@ import com.sun.jdi.LocalVariable;
 import com.sun.jdi.Location;
 import com.sun.jdi.LongValue;
 import com.sun.jdi.Method;
+import com.sun.jdi.ObjectReference;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.ShortValue;
 import com.sun.jdi.StackFrame;
@@ -30,6 +32,11 @@ import com.sun.jdi.ThreadReference;
 import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 import com.sun.jdi.VirtualMachine;
+import com.sun.jdi.event.BreakpointEvent;
+import com.sun.jdi.event.Event;
+import com.sun.jdi.event.MethodEntryEvent;
+import com.sun.jdi.event.MethodExitEvent;
+import com.sun.jdi.event.StepEvent;
 import com.sun.jdi.request.BreakpointRequest;
 import com.sun.jdi.request.ClassPrepareRequest;
 import com.sun.jdi.request.EventRequest;
@@ -38,7 +45,7 @@ import com.sun.jdi.request.MethodEntryRequest;
 import com.sun.jdi.request.MethodExitRequest;
 import com.sun.jdi.request.StepRequest;
 
-public class DalvikUtils extends Thread{
+public class DalvikUtils extends Thread {
 	private final static org.apache.log4j.Logger LOGGER = Logger
 			.getLogger(DalvikUtils.class.getName());
 	public static ArrayList<Value> NOARGS = new ArrayList<Value>();
@@ -50,7 +57,7 @@ public class DalvikUtils extends Thread{
 
 	public DalvikUtils(VirtualMachine vm, int threadIndex) {
 		this.vm = vm;
-		this.name  = this.vm.name();
+		this.name = this.vm.name();
 
 		// TODO dont know if this should be defaulted or exception thrown
 		if ((threadIndex < 0) || (threadIndex >= this.vm.allThreads().size())) {
@@ -67,15 +74,6 @@ public class DalvikUtils extends Thread{
 		this.vm = virtualMachine;
 		this.currentThread = thread;
 		this.name = this.vm.name();
-	}
-
-	public ClassLoaderUtils getClassLoaderUtils() throws InvalidTypeException, ClassNotLoadedException, IncompatibleThreadStateException, InvocationException{
-		this.classLoaderUtils = new ClassLoaderUtils(this);
-		return this.classLoaderUtils;
-	}
-	
-	public ThreadReference getCurrentThread() {
-		return this.currentThread;
 	}
 
 	public BooleanValue createBool(boolean toCreate) {
@@ -122,17 +120,13 @@ public class DalvikUtils extends Thread{
 		return cpr;
 	}
 
-	public BreakpointRequest createBreakpointRequest(Location loc) {
+	public BreakpointRequest createBreakpointRequest(Location loc){
 		BreakpointRequest bpr = this.eventRequestManager
 				.createBreakpointRequest(loc);
 		// this could be SUSPEND_EVENT_THREAD
 		bpr.setSuspendPolicy(EventRequest.SUSPEND_ALL);
 		bpr.enable();
 		return bpr;
-	}
-
-	public List<BreakpointRequest> getBreakpoints() {
-		return this.eventRequestManager.breakpointRequests();
 	}
 
 	public MethodEntryRequest createMethodEntryRequest(String classFilter) {
@@ -212,12 +206,27 @@ public class DalvikUtils extends Thread{
 		this.eventRequestManager.deleteEventRequest(req);
 	}
 
+	public List<BreakpointRequest> getBreakpoints() {
+		return this.eventRequestManager.breakpointRequests();
+	}
+
+	public ClassLoaderUtils getClassLoaderUtils() throws InvalidTypeException,
+			ClassNotLoadedException, IncompatibleThreadStateException,
+			InvocationException {
+		this.classLoaderUtils = new ClassLoaderUtils(this);
+		return this.classLoaderUtils;
+	}
+
+	public ThreadReference getCurrentThread() {
+		return this.currentThread;
+	}
+
 	private List<ReferenceType> findClasses(String name) {
 		this.vm.allClasses();
 		return this.vm.classesByName(name);
 	}
 
-	public ClassType findClassType(String name) {
+	public ReferenceType findReferenceType(String name) {
 		List<ReferenceType> cls = this.findClasses(name);
 		ReferenceType cl = null;
 		if (!cls.isEmpty()) {
@@ -227,7 +236,7 @@ public class DalvikUtils extends Thread{
 			}
 			cl = cls.get(0);
 		}
-		return (ClassType) cl;
+		return cl;
 	}
 
 	public Method findMethodInClass(ReferenceType clazz, String methodName,
@@ -260,7 +269,40 @@ public class DalvikUtils extends Thread{
 		return tr.frames().get(0);
 	}
 
-	public List<LocalVariable> getLocals(ThreadReference tr, int idx)
+	// TODO should create an EventWrapper class or something instead of this
+	// something weird bout execution time, thread is resuming w method entry reqs
+	public HashMap<String, String> getVarStringFromFrame(
+			ThreadReference currentThread, int indx)
+			throws IncompatibleThreadStateException,
+			AbsentInformationException, InvalidTypeException,
+			ClassNotLoadedException, InvocationException {
+		HashMap<String, String> varsMap = new HashMap<String, String>();
+		if (currentThread.isSuspended()) {
+			StackFrame frame = currentThread.frames().get(indx);
+			List<LocalVariable> visVars = frame.visibleVariables();
+			for (LocalVariable var : visVars) {
+				Value val = frame.getValue(var);
+				String valStr = "NOVALUE";
+				if (val instanceof ObjectReference) {
+					ObjectReference valObj = (ObjectReference) val;
+					Method toString = this.findMethodInClass(
+							valObj.referenceType(), "toString",
+							new ArrayList<String>());
+					Value objStr = valObj.invokeMethod(currentThread, toString,
+							NOARGS, 0);
+					valStr = objStr.toString();
+				} else {
+					valStr = val.toString();
+				}
+				varsMap.put(var.name(), valStr);
+			}
+		} else {
+			LOGGER.error("thread not suspended");
+		}
+		return varsMap;
+	}
+
+	public List<LocalVariable> getVisibleVars(ThreadReference tr, int idx)
 			throws IllegalArgumentException, IncompatibleThreadStateException,
 			AbsentInformationException {
 		StackFrame frame = tr.frames().get(idx);
@@ -269,7 +311,7 @@ public class DalvikUtils extends Thread{
 		}
 		return null;
 	}
-	
+
 	public Value getLocalVariableValue(ThreadReference tr, int frameIdx,
 			String localName) throws AbsentInformationException,
 			IncompatibleThreadStateException {
@@ -282,9 +324,8 @@ public class DalvikUtils extends Thread{
 		return ret;
 	}
 
-	public Value getLocalVariableValue(StackFrame fr,
-			String localName) throws AbsentInformationException,
-			IncompatibleThreadStateException {
+	public Value getLocalVariableValue(StackFrame fr, String localName)
+			throws AbsentInformationException, IncompatibleThreadStateException {
 		Value ret = null;
 		LocalVariable var = fr.visibleVariableByName(localName);
 		if (var != null) {
@@ -292,7 +333,7 @@ public class DalvikUtils extends Thread{
 		}
 		return ret;
 	}
-	
+
 	public StringReference getLocalVariableValueAsString(StackFrame fr,
 			String localName) throws AbsentInformationException,
 			IncompatibleThreadStateException {
@@ -301,13 +342,15 @@ public class DalvikUtils extends Thread{
 		LocalVariable var = fr.visibleVariableByName(localName);
 		if (var != null) {
 			val = fr.getValue(var);
-			if( val instanceof StringReference){
+			if (val instanceof StringReference) {
 				ret = (StringReference) fr.getValue(var);
 			} else {
-				LOGGER.warn("getLocalVariableValueAsString called with non-String Object: " + var.getClass().getName());
+				LOGGER.warn("getLocalVariableValueAsString called with non-String Object: "
+						+ var.getClass().getName());
 			}
 		} else {
-			LOGGER.warn("LocalVariable with name: " + localName + " was not found");
+			LOGGER.warn("LocalVariable with name: " + localName
+					+ " was not found");
 		}
 		return ret;
 	}
@@ -345,7 +388,8 @@ public class DalvikUtils extends Thread{
 		DalvikUtils.LOGGER
 				.info("attempting to get the system class loader (Class.getSystemClassLoader)");
 		Value toreturn = null;
-		ClassType cl = this.findClassType("java.lang.ClassLoader");
+		ClassType cl = (ClassType) this
+				.findReferenceType("java.lang.ClassLoader");
 		if (cl != null) {
 			List<Method> getSCLMS = cl.methodsByName("getSystemClassLoader");
 			Method getSCL = getSCLMS.get(0);
@@ -362,23 +406,59 @@ public class DalvikUtils extends Thread{
 		return this.vm;
 	}
 
+	public ClassWrapper getClassWrapper(String clasName) {
+		ClassType clsType = (ClassType) this.findReferenceType(clasName);
+		return new ClassWrapper(clsType.classObject(), this.currentThread);
+	}
+
+	public Value getFieldValue(String className, String fieldName) {
+		ClassWrapper classWrapper = this.getClassWrapper(className);
+		Field field = classWrapper.getField(fieldName);
+		Value fieldValue = classWrapper.getFieldValue(field);
+		return fieldValue;
+	}
+
 	// TODO this is not sufficient only does method names not line locations
+	// jsut buggy needs to be fixed
 	public Location resolveLocation(String location) {
 		DalvikUtils.LOGGER.warn("line locations not yet implemented!");
 		location = location.trim();
+		location = location.replaceAll("\\s", "");
 		Location loc = null;
-		int endIdx = location.lastIndexOf(".");
+		int parenStart = location.indexOf("(");
+		if(parenStart == -1){
+			parenStart = location.length()-1;
+		}
+		String subLoc = location.substring(0, parenStart);
+		int endIdx = subLoc.lastIndexOf(".");
 		if (endIdx != -1) {
 			String className = location.substring(0, endIdx);
-			ReferenceType cr = this.findClassType(className);
+			String method = location.substring(endIdx+1);
+			String methodName = method.substring(0, method.indexOf("("));
+			LOGGER.debug("classname: " + className);
+			LOGGER.debug("method:" + method);
+			LOGGER.debug("methodName: " + methodName);
+			ReferenceType cr = this.findReferenceType(className);
 			if (cr != null) {
-				for (Method m : cr.allMethods()) {
+				for (Method m : cr.methodsByName(methodName)) {
 					// TODO need to think on this comparison ...
-					if (m.toString().contains(location)) {
+					String mString = m.toString().trim();
+					mString = mString.replaceAll("\\s", "");
+					if (mString.contains(method)) {
 						loc = m.location();
-						break;
+						
+						if( loc == null){
+							LOGGER.debug("found location but null, method is in abstract class?");
+						} else {
+							LOGGER.info("found location: " + loc);
+							break;
+						}
+					} else {
+						LOGGER.debug("locations do not match: " + mString + " != " + location);
 					}
 				}
+			} else {
+				LOGGER.debug("could not find class: " + className);
 			}
 		}
 		return loc;
@@ -408,18 +488,6 @@ public class DalvikUtils extends Thread{
 
 	public void suspendAllThreads() {
 		this.vm.suspend();
-	}
-
-	public ClassWrapper getClassWrapper(String clasName) {
-		ClassType clsType = this.findClassType(clasName);
-		return new ClassWrapper(clsType.classObject(), this.currentThread);
-	}
-
-	public Value getFieldValue(String className, String fieldName) {
-		ClassWrapper classWrapper = this.getClassWrapper(className);
-		Field field = classWrapper.getField(fieldName);
-		Value fieldValue = classWrapper.getFieldValue(field);
-		return fieldValue;
 	}
 
 }
